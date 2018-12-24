@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 import sys,time
 sys.path.append('/home/pi/Adafruit-Raspberry-Pi-Python-Code/Adafruit_PWM_Servo_Driver/')
 
@@ -31,6 +31,28 @@ def setServoPosition(channel, position):
         # print("Setting servo {} pulse to {}".format(channel,pulse) )
         pwm.setPWM(channel, 0, pulse)
     
+    
+def setPercentageOn(channel, percent):
+    """ Sets the percentage of time a channel is on per cycle.
+        For use with PWM motor speed control.
+    """
+    
+    #Fully on pulse length is 4096.
+    #With 8V supply and 6V motors, limit to 75% of fully on
+    maxPulse = 3072
+    
+    #Convert percentage to pulse length
+    pulse = int( percent * maxPulse / 100 )
+    
+    #Limit pulse length to between zero and maximum
+    if (percent < 0):
+        pulse = 0
+    elif (percent > 100):
+        pulse = maxPulse
+
+    #print("Setting servo {} pulse to {}".format(channel,pulse) )
+    pwm.setPWM(channel, 0, pulse)
+      
     
 def main():
     """ Test function for servo
