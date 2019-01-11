@@ -12,6 +12,13 @@ class Mode(Enum):
     manual = 1
     automaze = 2
     
+class MenuLevel(Enum):
+    """ MenuLevel Enum class.
+        Values used to control what menu items to display and now to respond to clicks
+    """
+    top = 0
+    close = 1
+    
     
 class Colour(Enum):
     """ Colour definitions Enum class """
@@ -26,7 +33,13 @@ mode = Mode.menu
 speed = 0
 angle = 90
 screen = None
+menu = MenuLevel.top
 
+borderX = 50
+borderY = 35
+sepX = 250
+sepY = 225
+    
 def initStatus(status):
     """ Callback function which displays status during initialisation """
     if status == 0 :
@@ -71,10 +84,16 @@ def mouseDownHandler(pos, btn):
     #print("position {}; button {}".format(pos,btn) )
     if mode == Mode.menu:
         if btn == 1:
-            showImage(screen, "mars_btn_180.jpg", pos)
-            showText(screen, "Manual Control", (200,200) )
+            #Left-click (or Touchscreen press)
+            if menu == MenuLevel.top :
+                #Get btn
+                btn = getBtn(pos)
+                showMenu(MenuLevel.top)
+                showText(screen,"Btn: {}".format(btn), (10,10) )
         elif btn == 3:
+            #Right Click (for testing)
             showImage(screen, "mars_hubble_canyon.jpg")
+            showImage(screen, "mars_btn180.gif", pos)
     
     
 def showImage(screen,filename, position = [0,0]):
@@ -84,10 +103,11 @@ def showImage(screen,filename, position = [0,0]):
     try:
         image = pygame.image.load( filename ).convert()
         screen.blit( image, position )
+        print("Image placed at {}".format(position) )
     except: 
         screen.fill( (0,0,0) )
         font = pygame.font.Font(None, 40)
-        textBitmap = font.render("Failed to load image: " + filename, True, Colour.Red )
+        textBitmap = font.render("Failed to load image: " + filename, True, Colour.Red.value )
         screen.blit( textBitmap, (50, 200) )
     
     
@@ -100,6 +120,110 @@ def showText(screen, text, position = [0,0], colour = Colour.White, size = 40 ):
     screen.blit( textBitmap, position )
     
     
+def showMenu(level):
+    """ Displays the menu graphics on screen """
+    global borderX
+    global borderY
+    global sepX
+    global sepY
+    global menu
+    
+    menu = level
+    
+    if level == MenuLevel.top :
+        showImage( screen, "LagoonNebula.jpg" )
+        borderX = 50
+        borderY = 35
+        sepX = 250
+        sepY = 225
+        showImage( screen, "jupiter_btn180.gif", (borderX,borderY) )
+        showText(screen, "Manual Control", (borderX+20,borderY+185), Colour.Blue, 30 )
+        showImage( screen, "venus_btn180.gif", (borderX+2*sepX,borderY+sepY) )
+        showText(screen, "Exit", (borderX+2*sepX+70,borderY+sepY+185), Colour.Blue, 30 )
+    elif level == MenuLevel.close :
+        showImage( screen, "LagoonNebula.jpg" )
+        borderX = 175
+        borderY = 150
+        sepX = 250
+        showImage( screen, "jupiter_btn180.gif", (borderX,borderY) )
+        showImage( screen, "venus_btn180.gif", (borderX+sepX,borderY) )
+    else:
+        showImage( screen, "LagoonNebula.jpg" )
+        borderX = 50
+        borderY = 35
+        sepX = 250
+        sepY = 225
+        showImage( screen, "mercury2_btn180.gif", (borderX,borderY) )
+        showImage( screen, "mars_btn180.gif", (borderX+sepX,borderY+sepY) )
+        showImage( screen, "venus_btn180.gif", (borderX+2*sepX,borderY) )
+        showImage( screen, "jupiter2_btn180.gif", (borderX,borderY+sepY) )
+        showImage( screen, "moon_btn180.gif", (borderX+sepX,borderY) )
+        showImage( screen, "saturn_btn180.gif", (borderX+2*sepX,borderY+sepY) )
+    
+
+def getBtn(pos):
+    """ Returns the index of the button which the position matches on the screen menu.
+        Returns -1 if no button at position.
+    """
+    x = pos[0] - borderX
+    y = pos[1] - borderY
+    btnWidth = 180
+    col = -1
+    row = -1
+    btn = -1
+    numCols = 3
+    numRows = 2
+    
+    #Determine button column from X position
+    while x > 0 :
+        if x < btnWidth :
+            #Position inside btn area
+            col += 1
+            break
+        elif x > sepX:
+            #Position beyond seperation to next btn area
+            x -= sepX
+            col += 1
+        else:
+            #Position in between btn areas
+            col = -1
+            break
+    
+    if col >= 0 and col < numCols :
+        #Determine button row from Y position
+        while y > 0 :
+            if y < btnWidth :
+                #Position inside btn area
+                row += 1
+                break
+            elif y > sepY:
+                #Position beyond seperation to next btn area
+                y -= sepY
+                row += 1
+            else:
+                #Position in between btn areas
+                row = -1
+                break
+            
+        if row >= 0 and row < numRows :
+            btn = (numCols * row) + col
+        
+    return btn
+
+    
+def setMode(newMode):
+    global mode
+    
+    #Stop hardware
+    rc.stopAll()
+    
+    #Update global mode
+    mode = newMode
+    
+    if mode == Mode.menu :
+        showMenu(MenuLevel.top)
+
+
 def main():
     global screen
     
@@ -121,7 +245,7 @@ def main():
             robotControl.screen = pygame.display.set_mode([800,480])
             screen = robotControl.screen
             robotControl.displayControllerOutput = False
-            showImage(robotControl.screen,"iss_solar_panel.jpg")
+            setMode(Mode.menu)
         else:
             keepRunning = False
             
