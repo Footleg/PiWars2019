@@ -33,12 +33,15 @@ mode = Mode.menu
 speed = 0
 angle = 90
 screen = None
-menu = MenuLevel.top
+stopProgram = False
 
+menu = MenuLevel.top
 borderX = 50
 borderY = 35
 sepX = 250
 sepY = 225
+clickSequence = 0 #Used to track screen clicks to return to menus from running modes
+
     
 def initStatus(status):
     """ Callback function which displays status during initialisation """
@@ -81,20 +84,59 @@ def mouseDownHandler(pos, btn):
     """ Handler function for mouse down.
         Determine which menu control was clicked using mouse position
     """
-    #print("position {}; button {}".format(pos,btn) )
+    global stopProgram
+    global clickSequence
+
     if mode == Mode.menu:
         if btn == 1:
             #Left-click (or Touchscreen press)
+            btn = getBtn(pos)
+            
             if menu == MenuLevel.top :
-                #Get btn
-                btn = getBtn(pos)
-                showMenu(MenuLevel.top)
+                if btn == 0 :
+                    setMode(Mode.manual)
+                elif btn == 5 :
+                    showMenu(MenuLevel.close)
+            elif menu == MenuLevel.close :
+                if btn == 0 :
+                    #TODO: Change to trigger a shutdown
+                    stopProgram = True
+                elif btn == 1 :
+                    stopProgram = True
+                elif btn == 2 :
+                    showMenu(MenuLevel.top)
+                    
+            else:
+                showMenu(MenuLevel.close)
                 showText(screen,"Btn: {}".format(btn), (10,10) )
         elif btn == 3:
             #Right Click (for testing)
             showImage(screen, "mars_hubble_canyon.jpg")
             showImage(screen, "mars_btn180.gif", pos)
-    
+    else:
+        #When not in menu mode, monitor clicks to allow menus to be displayed if all 4 quarters of screen are touched
+        if clickSequence == 0:
+            #Increment if top left quarter clicked
+            if pos[0] < 400 and pos[1] < 240 :
+                clickSequence += 1
+        elif clickSequence == 1:
+            #Increment if top right quarter clicked
+            if pos[0] > 400 and pos[1] < 240 :
+                clickSequence += 1
+            else:
+                clickSequence = 0
+        elif clickSequence == 2:
+            #Increment if top right quarter clicked
+            if pos[0] < 400 and pos[1] > 240 :
+                clickSequence += 1
+            else:
+                clickSequence = 0
+        elif clickSequence == 3:
+            #Reset and also change mode if bottom right quarter clicked
+            clickSequence = 0
+            if pos[0] > 400 and pos[1] > 240 :
+                setMode(Mode.menu)
+
     
 def showImage(screen,filename, position = [0,0]):
     """ Displays an image on the display at the specified coordinates
@@ -142,11 +184,15 @@ def showMenu(level):
         showText(screen, "Exit", (borderX+2*sepX+70,borderY+sepY+185), Colour.Blue, 30 )
     elif level == MenuLevel.close :
         showImage( screen, "LagoonNebula.jpg" )
-        borderX = 175
+        borderX = 50
         borderY = 150
         sepX = 250
-        showImage( screen, "jupiter_btn180.gif", (borderX,borderY) )
-        showImage( screen, "venus_btn180.gif", (borderX+sepX,borderY) )
+        showImage( screen, "venus_btn180.gif", (borderX,borderY) )
+        showText(screen, "Shutdown", (borderX+38,borderY+185), Colour.Blue, 30 )
+        showImage( screen, "jupiter_btn180.gif", (borderX+sepX,borderY) )
+        showText(screen, "Desktop", (borderX+sepX+54,borderY+185), Colour.Blue, 30 )
+        showImage( screen, "mercury2_btn180.gif", (borderX+2*sepX,borderY) )
+        showText(screen, "Cancel", (borderX+2*sepX+54,borderY+185), Colour.Blue, 30 )
     else:
         showImage( screen, "LagoonNebula.jpg" )
         borderX = 50
@@ -210,7 +256,6 @@ def getBtn(pos):
         
     return btn
 
-    
 def setMode(newMode):
     global mode
     
@@ -220,12 +265,15 @@ def setMode(newMode):
     #Update global mode
     mode = newMode
     
+    #Update display for active mode
     if mode == Mode.menu :
         showMenu(MenuLevel.top)
-
+    elif mode == Mode.manual :
+        showImage( screen, "iss_solar_panel_orange.jpg" )
 
 def main():
     global screen
+    global stopProgram
     
     ## Check that required hardware is connected ##
 
@@ -255,7 +303,7 @@ def main():
             robotControl.message = message
             
             # Trigger stick events and check for quit
-            keepRunning = robotControl.controllerStatus()
+            keepRunning = robotControl.controllerStatus() and not stopProgram
     
     finally:
         #Clean up and turn off hardware (motors)
