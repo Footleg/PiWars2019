@@ -112,7 +112,7 @@ def mouseDownHandler(pos, btn):
         elif btn == 3:
             #Right Click (for testing)
             showImage(screen, "mars_hubble_canyon.jpg")
-            showImage(screen, "mars_btn180.gif", pos)
+            showImage(screen, "mars1_btn180.gif", pos)
     else:
         #When not in menu mode, monitor clicks to allow menus to be displayed if all 4 quarters of screen are touched
         if clickSequence == 0:
@@ -178,20 +178,20 @@ def showMenu(level):
         borderY = 35
         sepX = 250
         sepY = 225
-        showImage( screen, "jupiter_btn180.gif", (borderX,borderY) )
+        showImage( screen, "jupiter1_btn180.gif", (borderX,borderY) )
         showText(screen, "Manual Control", (borderX+20,borderY+185), Colour.Blue, 30 )
-        showImage( screen, "venus_btn180.gif", (borderX+2*sepX,borderY+sepY) )
+        showImage( screen, "venus1_btn180.gif", (borderX+2*sepX,borderY+sepY) )
         showText(screen, "Exit", (borderX+2*sepX+70,borderY+sepY+185), Colour.Blue, 30 )
     elif level == MenuLevel.close :
         showImage( screen, "LagoonNebula.jpg" )
         borderX = 50
         borderY = 150
         sepX = 250
-        showImage( screen, "venus_btn180.gif", (borderX,borderY) )
+        showImage( screen, "mercury1_btn180.gif", (borderX,borderY) )
         showText(screen, "Shutdown", (borderX+38,borderY+185), Colour.Blue, 30 )
-        showImage( screen, "jupiter_btn180.gif", (borderX+sepX,borderY) )
+        showImage( screen, "mars2_btn180.gif", (borderX+sepX,borderY) )
         showText(screen, "Desktop", (borderX+sepX+54,borderY+185), Colour.Blue, 30 )
-        showImage( screen, "mercury2_btn180.gif", (borderX+2*sepX,borderY) )
+        showImage( screen, "venus2_btn180.gif", (borderX+2*sepX,borderY) )
         showText(screen, "Cancel", (borderX+2*sepX+54,borderY+185), Colour.Blue, 30 )
     else:
         showImage( screen, "LagoonNebula.jpg" )
@@ -276,6 +276,11 @@ def main():
     global stopProgram
     
     ## Check that required hardware is connected ##
+    
+    # Determine screen resolution before pygame window is created
+    pygame.init()
+    screen_w = pygame.display.Info().current_w
+    screen_h = pygame.display.Info().current_h
 
     # Define which inputs and outputs are configured
     
@@ -289,8 +294,13 @@ def main():
         
         if robotControl.initialised :
             keepRunning = True
-            #Success, we have a game controller connected. Set up screen for HyperPixel display
-            robotControl.screen = pygame.display.set_mode([800,480])
+            #Success, we have a game controller connected. Set up screen
+            screen_size = [800,480]
+            display_mode = 0 #Default to windowed mode
+            if (screen_w == screen_size[0]) and (screen_h == screen_size[1]):
+                #Run fullscreen for HyperPixel display
+                display_mode = pygame.FULLSCREEN
+            robotControl.screen = pygame.display.set_mode(screen_size,display_mode)
             screen = robotControl.screen
             robotControl.displayControllerOutput = False
             setMode(Mode.menu)
