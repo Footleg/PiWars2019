@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import pygame, random, time, math
+import pygame
 import RobotControl as rc
 from PygameController import RobotController
 from enum import Enum
@@ -173,6 +173,7 @@ def showMenu(level):
     menu = level
     
     if level == MenuLevel.top :
+        # Main menu with top level options
         showImage( screen, "LagoonNebula.jpg" )
         borderX = 50
         borderY = 35
@@ -183,6 +184,7 @@ def showMenu(level):
         showImage( screen, "venus1_btn180.gif", (borderX+2*sepX,borderY+sepY) )
         showText(screen, "Exit", (borderX+2*sepX+70,borderY+sepY+185), Colour.Blue, 30 )
     elif level == MenuLevel.close :
+        # Program exit confirmation menu
         showImage( screen, "LagoonNebula.jpg" )
         borderX = 50
         borderY = 150
@@ -194,6 +196,7 @@ def showMenu(level):
         showImage( screen, "venus2_btn180.gif", (borderX+2*sepX,borderY) )
         showText(screen, "Cancel", (borderX+2*sepX+54,borderY+185), Colour.Blue, 30 )
     else:
+        # (temporary code parked here for showing all 6 menu option buttons in position)
         showImage( screen, "LagoonNebula.jpg" )
         borderX = 50
         borderY = 35
@@ -270,6 +273,11 @@ def setMode(newMode):
         showMenu(MenuLevel.top)
     elif mode == Mode.manual :
         showImage( screen, "iss_solar_panel_orange.jpg" )
+        rc.setSteeringFrontLeft(90)
+        rc.setSteeringFrontRight(90)
+        rc.setSteeringRearLeft(90)
+        rc.setSteeringRearRight(90)
+
 
 def main():
     global screen
