@@ -1,4 +1,4 @@
 # PiWars2019
 Code for my robot entry in the PiWars.org 2019 robotics competition.
 
-This uses my pygame controller project with the Adafruit 16 channel PWM board to control 4 servos for steering and 2 sets of motors for variable speed driving. Using a Hyper Pixel 4 touch screen for a UI.
+The mock branch contains versions of all the hardware interface modules which allow the code to be run and developed on a computer without any of the robot hardware attached. Any hardware is simulated in the modules on this branch so that menu and control code can be tested without access to the physical robot.
