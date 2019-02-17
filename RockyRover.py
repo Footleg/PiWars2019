@@ -41,6 +41,11 @@ borderY = 35
 sepX = 250
 sepY = 225
 clickSequence = 0 #Used to track screen clicks to return to menus from running modes
+#Trackers of button states on controller
+selectBtnPressed = False
+startBtnPressed = False
+leftBtn1Pressed = False
+rightBtn1Pressed = False
 
     
 def initStatus(status):
@@ -80,6 +85,32 @@ def rightStickChangeHandler(valLR, valUD):
         rc.setSteeringRearRight(angleRear)
 
 
+def selectBtnHandler(state):
+    """ Handler for Select button on game controller """
+    global selectBtnPressed
+    selectBtnPressed = state
+    
+    
+def startBtnHandler(state):
+    """ Handler for Start button on game controller """
+    global startBtnPressed
+    startBtnPressed = state
+    
+    
+def leftBtn1Handler(state):
+    """ Handler for Start button on game controller """
+    global leftBtn1Pressed
+    leftBtn1Pressed = state
+    updatePowerLimiting()
+    
+    
+def rightBtn1Handler(state):
+    """ Handler for Start button on game controller """
+    global rightBtn1Pressed
+    rightBtn1Pressed = state
+    updatePowerLimiting()
+    
+    
 def mouseDownHandler(pos, btn):
     """ Handler function for mouse down.
         Determine which menu control was clicked using mouse position
@@ -136,6 +167,28 @@ def mouseDownHandler(pos, btn):
             clickSequence = 0
             if pos[0] > 400 and pos[1] > 240 :
                 setMode(Mode.menu)
+
+    
+def updatePowerLimiting():
+    """ Sets the maximum motor power based on controller btn states.
+        Default power limit is 40% equivalent of motor driver Vin voltage.
+        Holding left button 1 raises limit to 60%
+        Holding right button 1 raises limit to 80%
+        Holding both left & right button 1 raises limit to 100%
+    """
+    powerLimit = 40
+    
+    if leftBtn1Pressed:
+        powerLimit += 20
+        
+    if rightBtn1Pressed:
+        powerLimit += 40
+        
+    rc.setMotorPowerLimit(powerLimit)
+    
+    #Update motor speeds
+    rc.setLeftMotorPower(speed)
+    rc.setRightMotorPower(speed)
 
     
 def showImage(screen,filename, position = [0,0]):
@@ -259,6 +312,7 @@ def getBtn(pos):
         
     return btn
 
+
 def setMode(newMode):
     global mode
     
@@ -281,7 +335,6 @@ def setMode(newMode):
 
 def main():
     global screen
-    global stopProgram
     
     ## Check that required hardware is connected ##
     
@@ -298,6 +351,10 @@ def main():
         robotControl = RobotController("Rocky Rover Remote Control", initStatus,
             leftStickChanged = leftStickChangeHandler,
             rightStickChanged = rightStickChangeHandler,
+            selectBtnChanged = selectBtnHandler,
+            startBtnChanged = startBtnHandler,
+            leftBtn1Changed = leftBtn1Handler, 
+            rightBtn1Changed = rightBtn1Handler, 
             mouseDown = mouseDownHandler)
         
         if robotControl.initialised :
@@ -319,6 +376,12 @@ def main():
         while keepRunning == True :
             message = "Speed: {}, Steering: {}".format(speed,angle)
             robotControl.message = message
+            
+            #Check for controller button combinations in different modes
+            if mode == Mode.manual :
+                #Exit to menu if both select and start buttons are held down at the same time
+                if selectBtnPressed and startBtnPressed:
+                    setMode(Mode.menu)
             
             # Trigger stick events and check for quit
             keepRunning = robotControl.controllerStatus() and not stopProgram
