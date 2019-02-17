@@ -13,14 +13,14 @@ servoRearLeftChannel = 2
 servoRearRightChannel = 3
 motorsLeftChannelA = 12
 motorsLeftChannelB = 13
-motorsRightChannelA = 14
-motorsRightChannelB = 15
+motorsRightChannelA = 15
+motorsRightChannelB = 14
 
 # Servo calibration constants
-servoFrontLeftOffset = 14
-servoFrontRightOffset = 36
-servoRearLeftOffset = 16
-servoRearRightOffset = 24
+servoFrontLeftOffset = 32 #14 <- plywood prototype
+servoFrontRightOffset = -11 #36 <- plywood prototype
+servoRearLeftOffset = 14 #16 <- plywood prototype
+servoRearRightOffset = 24 #24 <- plywood prototype
 
 servoMinAngle = 40
 servoMaxAngle = 135
@@ -137,6 +137,7 @@ def main():
     time.sleep(1)
     setRightMotorPower(0)
     """
+    setSteeringStraight()
     speed = 50
     setLeftMotorPower(speed)
     setRightMotorPower(speed)

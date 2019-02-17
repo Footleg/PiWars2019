@@ -10,6 +10,7 @@ freqPWM = 50    #Frequency of PWM pulses (default is 50 Hz)
 servoMin = 105  #105 Min pulse length (out of 4096)
 servoMax = 475  #500 Max pulse length (out of 4096)
 servoRange = 180 #Rotation range in degrees of the servos being used
+motorPowerLimiting = 50 #Default limits motors to 50 power
 
 # Initialise the PWM device using the default address
 pwm = PWM(0x40, debug=False)
@@ -32,6 +33,21 @@ def setServoPosition(channel, position):
         pwm.setPWM(channel, 0, pulse)
     
     
+def setMotorPowerLimiting(percentage):
+    """ Sets limit to maximum motor power (as a percentage of motor board input voltage)
+        Used to limit the maximum voltage the motors receive via PWM limiting.
+        e.g. Setting this to 50% will mean when the motor percent on method is sent a value
+        of 100%, the motors will only actually be send a PWM pulse which is on 50% of the time.
+    """
+    if percentage > 0:
+        if percentage > 100:
+            motorPowerLimiting = 100
+        else:
+            motorPowerLimiting = percentage
+    else:
+        motorPowerLimiting = 0
+    
+    
 def setPercentageOn(channel, percent):
     """ Sets the percentage of time a channel is on per cycle.
         For use with PWM motor speed control.
@@ -39,7 +55,7 @@ def setPercentageOn(channel, percent):
     
     #Fully on pulse length is 4096.
     #With 8V supply and 6V motors, limit to 75% of fully on
-    maxPulse = 3072
+    maxPulse = 4096 * motorPowerLimiting / 100
     
     #Convert percentage to pulse length
     pulse = int( percent * maxPulse / 100 )
