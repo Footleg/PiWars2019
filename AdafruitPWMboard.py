@@ -11,6 +11,7 @@ servoMin = 105  #105 Min pulse length (out of 4096)
 servoMax = 475  #500 Max pulse length (out of 4096)
 servoRange = 180 #Rotation range in degrees of the servos being used
 motorPowerLimiting = 50 #Default limits motors to 50 power
+channelPulseLengths = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0] #Store pulse lengths sent to each channel (for debug info)
 
 # Initialise the PWM device using the default address
 pwm = PWM(0x40, debug=False)
@@ -22,6 +23,7 @@ pwm.setPWMFreq(freqPWM)
 def setServoPosition(channel, position):
     """ Sets the position of a servo in degrees
     """
+    global channelPulseLengths
     
     #Convert position in degrees to value in range min-max
     pulse = int( ( (servoMax - servoMin) * position / servoRange ) + servoMin)
@@ -31,6 +33,7 @@ def setServoPosition(channel, position):
     else:
         # print("Setting servo {} pulse to {}".format(channel,pulse) )
         pwm.setPWM(channel, 0, pulse)
+        channelPulseLengths[channel] = pulse
     
     
 def setMotorPowerLimiting(percentage):
@@ -39,6 +42,8 @@ def setMotorPowerLimiting(percentage):
         e.g. Setting this to 50% will mean when the motor percent on method is sent a value
         of 100%, the motors will only actually be send a PWM pulse which is on 50% of the time.
     """
+    global motorPowerLimiting
+    
     if percentage > 0:
         if percentage > 100:
             motorPowerLimiting = 100
@@ -52,6 +57,7 @@ def setPercentageOn(channel, percent):
     """ Sets the percentage of time a channel is on per cycle.
         For use with PWM motor speed control.
     """
+    global channelPulseLengths
     
     #Fully on pulse length is 4096.
     #With 8V supply and 6V motors, limit to 75% of fully on
@@ -68,7 +74,16 @@ def setPercentageOn(channel, percent):
 
     #print("Setting servo {} pulse to {}".format(channel,pulse) )
     pwm.setPWM(channel, 0, pulse)
+    channelPulseLengths[channel] = pulse
       
+    
+def allOff():
+    """ Sets all outputs off """
+    global channelPulseLengths
+    
+    pwm.setAllPWM(0,0)
+    channelPulseLengths = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+    
     
 def main():
     """ Test function for servo
