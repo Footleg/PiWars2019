@@ -17,6 +17,7 @@ servoMin = 105  #105 Min pulse length (out of 4096)
 servoMax = 475  #500 Max pulse length (out of 4096)
 servoRange = 180 #Rotation range in degrees of the servos being used
 motorPowerLimiting = 50 #Default limits motors to 50 power
+channelPulseLengths = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0] #Store pulse lengths sent to each channel (for debug info)
 
 #Virtual hardware channels for mock robot
 servoChFL = 0
@@ -42,7 +43,7 @@ servoPosBR = 0
 def setServoPosition(channel, position):
     """ Sets the position of a servo in degrees
     """
-    global servoPosFL, servoPosFR, servoPosBL, servoPosBR
+    global channelPulseLengths, servoPosFL, servoPosFR, servoPosBL, servoPosBR
     
     #Convert position in degrees to value in range min-max
     pulse = int( ( (servoMax - servoMin) * position / servoRange ) + servoMin)
@@ -68,6 +69,7 @@ def setServoPosition(channel, position):
 
         if validChannel:
             drawVirtualRobot()
+            channelPulseLengths[channel] = pulse
         
     
 def setMotorPowerLimiting(percentage):
@@ -92,7 +94,7 @@ def setPercentageOn(channel, percent):
     """ Sets the percentage of time a channel is on per cycle.
         For use with PWM motor speed control.
     """
-    global motorChPctOnL1, motorChPctOnR1, motorChPctOnL2, motorChPctOnR2
+    global channelPulseLengths, motorChPctOnL1, motorChPctOnR1, motorChPctOnL2, motorChPctOnR2
 
     #Fully on pulse length is 4096.
     #Limit to percentage of this using motorPowerLimiting value
@@ -111,6 +113,7 @@ def setPercentageOn(channel, percent):
     percentOn = int(pulse * 100 / 4096)
     
     print("Motor channel {} requested power: {}, limited to {} by power limiting setting".format(channel, percent, percentOn) )
+    validChannel = True
     if channel == motorChL1:
         motorChPctOnL1 = percentOn
     elif channel == motorChR1:
@@ -119,8 +122,21 @@ def setPercentageOn(channel, percent):
         motorChPctOnL2 = percentOn
     elif channel == motorChR2:
         motorChPctOnR2 = percentOn
+    else:
+        validChannel = False
+        displayError("Call to set servo position on channel {} which has no servo attached.".format(channel))
     
-    drawVirtualRobot()
+    if validChannel:
+        drawVirtualRobot()
+        channelPulseLengths[channel] = pulse
+        
+    
+def allOff():
+    """ Sets all outputs off """
+    global channelPulseLengths
+    
+    channelPulseLengths = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+    
     
 def drawVirtualRobot():
     """ Draw graphical representation of robot on screen, indicating wheel positions and motor speeds """

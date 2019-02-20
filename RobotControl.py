@@ -93,6 +93,14 @@ def setMotorPowerLimit(percentage):
     pwmb.setMotorPowerLimiting(percentage)
     
 
+def getMotorPowerLimit():
+    return pwmb.motorPowerLimiting
+    
+
+def getPWMPulseLength(channel):
+    return pwmb.channelPulseLengths[channel]
+    
+
 def setMotorPower(channelA, channelB, power):
     """ Uses a pair of pwm channels to send switching logic pulses to motor driver.
         One channel is set to low (zero pulse width) and the other to a percentage on.
@@ -114,8 +122,7 @@ def setRightMotorPower(power):
     setMotorPower(motorsRightChannelA, motorsRightChannelB, power)
     
 def stopAll():
-    setLeftMotorPower(0)
-    setRightMotorPower(0)
+    pwmb.allOff()
     
     
 def main():

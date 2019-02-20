@@ -25,7 +25,12 @@ class Colour(Enum):
     Red = (255,0,0)
     Green = (0,255,0)
     Blue = (0,0,255)
+    Yellow = (255,255,0)
     White = (255,255,255)
+    Black = (0,0,0)
+    Brown = (120,60,0)
+    DarkBlue  = (0,0,200)
+    Purple = (100,0,100)
     
     
 #Declare globals
@@ -34,6 +39,7 @@ speed = 0
 angle = 90
 screen = None
 stopProgram = False
+debugInfo = False
 
 menu = MenuLevel.top
 borderX = 50
@@ -95,6 +101,15 @@ def startBtnHandler(state):
     """ Handler for Start button on game controller """
     global startBtnPressed
     startBtnPressed = state
+    
+    
+def homeBtnHandler(state):
+    """ Handler for Home button on game controller """
+    global debugInfo
+    
+    #Toggle state of debug info
+    if state == True:
+        debugInfo = not debugInfo
     
     
 def leftBtn1Handler(state):
@@ -327,11 +342,14 @@ def setMode(newMode):
         showMenu(MenuLevel.top)
     elif mode == Mode.manual :
         showImage( screen, "iss_solar_panel_orange.jpg" )
+        #Reset steering to straight ahead (powers up servos)
         rc.setSteeringFrontLeft(90)
         rc.setSteeringFrontRight(90)
         rc.setSteeringRearLeft(90)
         rc.setSteeringRearRight(90)
-
+        #Initialise power limiting
+        updatePowerLimiting()
+        
 
 def main():
     global screen
@@ -353,6 +371,7 @@ def main():
             rightStickChanged = rightStickChangeHandler,
             selectBtnChanged = selectBtnHandler,
             startBtnChanged = startBtnHandler,
+            homeBtnChanged = homeBtnHandler,
             leftBtn1Changed = leftBtn1Handler, 
             rightBtn1Changed = rightBtn1Handler, 
             mouseDown = mouseDownHandler)
@@ -382,7 +401,22 @@ def main():
                 #Exit to menu if both select and start buttons are held down at the same time
                 if selectBtnPressed and startBtnPressed:
                     setMode(Mode.menu)
-            
+                elif debugInfo:
+                    #Display debugging info on screen relevent to mode
+                    textsize = 38
+                    cursor = (10,10)
+                    showText(screen, "Debug Information:", cursor, size=textsize)
+                    cursor = (cursor[0]+20,cursor[1]+20)
+                    showText(screen, "Power Limiting: {}%".format( rc.getMotorPowerLimit() ), cursor, size=textsize)
+                    cursor = (cursor[0],cursor[1]+20)
+                    showText(screen, "Left motor ch1 pulse len: {}/4096".format( rc.getPWMPulseLength(rc.motorsLeftChannelA) ), cursor, size=textsize)
+                    cursor = (cursor[0],cursor[1]+20)
+                    showText(screen, "Left motor ch2 pulse len: {}/4096".format( rc.getPWMPulseLength(rc.motorsLeftChannelB) ), cursor, size=textsize)
+                    cursor = (cursor[0],cursor[1]+20)
+                    showText(screen, "Right motor ch1 pulse len: {}/4096".format( rc.getPWMPulseLength(rc.motorsRightChannelA) ), cursor, size=textsize)
+                    cursor = (cursor[0],cursor[1]+20)
+                    showText(screen, "Right motor ch2 pulse len: {}/4096".format( rc.getPWMPulseLength(rc.motorsRightChannelB) ), cursor, size=textsize)
+                    
             # Trigger stick events and check for quit
             keepRunning = robotControl.controllerStatus() and not stopProgram
     
