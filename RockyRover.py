@@ -113,6 +113,10 @@ def homeBtnHandler(state):
     if state == True:
         debugInfo = not debugInfo
     
+    #Reset background if turning debug info off (to clear displayed info)
+    if debugInfo == False:
+        setModeBackground()
+        
     
 def leftBtn1Handler(state):
     """ Handler for Start button on game controller """
@@ -245,6 +249,7 @@ def showText(screen, text, position = [0,0], colour = Colour.White, size = 40, s
     textBitmap = font.render(text, True, colour.value )
     screen.blit( textBitmap, position )
     
+    
 def showMenu(level):
     """ Displays the menu graphics on screen """
     global borderX
@@ -370,7 +375,7 @@ def setMode(newMode):
     if mode == Mode.menu :
         showMenu(MenuLevel.top)
     elif mode == Mode.manual :
-        showImage( screen, "iss_solar_panel_orange.jpg" )
+        setModeBackground()
         #Reset steering to straight ahead (powers up servos)
         rc.setSteeringFrontLeft(90)
         rc.setSteeringFrontRight(90)
@@ -379,6 +384,12 @@ def setMode(newMode):
         #Initialise power limiting
         updatePowerLimiting()
         
+
+def setModeBackground():
+    """ Sets the display background for the current mode """
+    if mode == Mode.manual :
+        showImage( screen, "iss_solar_panel_orange.jpg" )
+    
 
 def main():
     global screen
