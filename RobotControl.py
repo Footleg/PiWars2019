@@ -90,6 +90,9 @@ def setSteeringStraight():
 # Motor Control Functions, using a pair of channels
 #==========================================================================================
 def setMotorPowerLimit(percentage):
+    #Cap maximum percentage to 99 as PWM board does not work with 100 cycle
+    if percentage > 99:
+        percentage = 99
     pwmb.setMotorPowerLimiting(percentage)
     
 

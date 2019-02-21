@@ -4,6 +4,7 @@ import pygame
 import RobotControl as rc
 from PygameController import RobotController
 from enum import Enum
+from os import system
 
 
 class Mode(Enum):
@@ -18,6 +19,7 @@ class MenuLevel(Enum):
     """
     top = 0
     close = 1
+    shutdownReboot = 2
     
     
 class Colour(Enum):
@@ -145,13 +147,22 @@ def mouseDownHandler(pos, btn):
                     showMenu(MenuLevel.close)
             elif menu == MenuLevel.close :
                 if btn == 0 :
-                    #TODO: Change to trigger a shutdown
-                    stopProgram = True
+                    showMenu(MenuLevel.shutdownReboot)
                 elif btn == 1 :
+                    #Set flag to exit main program loop
                     stopProgram = True
                 elif btn == 2 :
                     showMenu(MenuLevel.top)
-                    
+            elif menu == MenuLevel.shutdownReboot :
+                if btn == 0 :
+                    #Cancel where shutdown was, so don't accidently shutdown on a double tap
+                    showMenu(MenuLevel.close)
+                elif btn == 1 :
+                    #Trigger a reboot
+                    system("reboot")
+                elif btn == 2 :
+                    #Trigger a shutdown
+                    system("shutdown now")
             else:
                 showMenu(MenuLevel.close)
                 showText(screen,"Btn: {}".format(btn), (10,10) )
@@ -187,14 +198,14 @@ def mouseDownHandler(pos, btn):
 def updatePowerLimiting():
     """ Sets the maximum motor power based on controller btn states.
         Default power limit is 40% equivalent of motor driver Vin voltage.
-        Holding left button 1 raises limit to 60%
-        Holding right button 1 raises limit to 80%
+        Holding left button 1 raises limit to 80%
+        Holding right button 1 raises limit to 60%
         Holding both left & right button 1 raises limit to 100%
     """
-    powerLimit = 40
+    powerLimit = 30
     
     if leftBtn1Pressed:
-        powerLimit += 20
+        powerLimit += 30
         
     if rightBtn1Pressed:
         powerLimit += 40
@@ -221,14 +232,18 @@ def showImage(screen,filename, position = [0,0]):
         screen.blit( textBitmap, (50, 200) )
     
     
-def showText(screen, text, position = [0,0], colour = Colour.White, size = 40 ):
+def showText(screen, text, position = [0,0], colour = Colour.White, size = 40, shadow=False, shadowCol=Colour.Black ):
     """ Displays text at the specified coordinates
         If no coordinates specified then will position at top left
     """
     font = pygame.font.Font(None, size)
+    
+    if shadow:
+        textBitmap = font.render(text, True, shadowCol.value )
+        screen.blit( textBitmap, (position[0]+1,position[1]+1) )
+    
     textBitmap = font.render(text, True, colour.value )
     screen.blit( textBitmap, position )
-    
     
 def showMenu(level):
     """ Displays the menu graphics on screen """
@@ -248,21 +263,35 @@ def showMenu(level):
         sepX = 250
         sepY = 225
         showImage( screen, "jupiter1_btn180.gif", (borderX,borderY) )
-        showText(screen, "Manual Control", (borderX+20,borderY+185), Colour.Blue, 30 )
+        showText(screen, "Manual Control", (borderX+20,borderY+185), Colour.Blue, 30, True )
+        showImage( screen, "mars1_btn180.gif", (borderX+sepX,borderY) )
+        showText(screen, "Sensor Test", (borderX+sepX+34,borderY+185), Colour.Blue, 30, True )
         showImage( screen, "venus1_btn180.gif", (borderX+2*sepX,borderY+sepY) )
-        showText(screen, "Exit", (borderX+2*sepX+70,borderY+sepY+185), Colour.Blue, 30 )
+        showText(screen, "Exit", (borderX+2*sepX+70,borderY+sepY+185), Colour.Blue, 30, True )
     elif level == MenuLevel.close :
         # Program exit confirmation menu
         showImage( screen, "LagoonNebula.jpg" )
         borderX = 50
         borderY = 150
         sepX = 250
-        showImage( screen, "mercury1_btn180.gif", (borderX,borderY) )
-        showText(screen, "Shutdown", (borderX+38,borderY+185), Colour.Blue, 30 )
+        showImage( screen, "venus1_btn180.gif", (borderX,borderY) )
+        showText(screen, "Shutdown", (borderX+44,borderY+185), Colour.Blue, 30, True )
         showImage( screen, "mars2_btn180.gif", (borderX+sepX,borderY) )
-        showText(screen, "Desktop", (borderX+sepX+54,borderY+185), Colour.Blue, 30 )
+        showText(screen, "Desktop", (borderX+sepX+58,borderY+185), Colour.Blue, 30, True )
         showImage( screen, "venus2_btn180.gif", (borderX+2*sepX,borderY) )
-        showText(screen, "Cancel", (borderX+2*sepX+54,borderY+185), Colour.Blue, 30 )
+        showText(screen, "Cancel", (borderX+2*sepX+54,borderY+185), Colour.Blue, 30, True )
+    elif level == MenuLevel.shutdownReboot :
+        # Shutdown/Reboot confirmation menu
+        showImage( screen, "LagoonNebula.jpg" )
+        borderX = 50
+        borderY = 150
+        sepX = 250
+        showImage( screen, "moon-farside_btn180.gif", (borderX,borderY) )
+        showText(screen, "Cancel", (borderX+58,borderY+185), Colour.Blue, 30, True )
+        showImage( screen, "jupiter1_btn180.gif", (borderX+sepX,borderY) )
+        showText(screen, "Reboot", (borderX+sepX+58,borderY+185), Colour.Blue, 30, True )
+        showImage( screen, "venus1_btn180.gif", (borderX+2*sepX,borderY) )
+        showText(screen, "Shutdown", (borderX+2*sepX+42,borderY+185), Colour.Blue, 30, True )
     else:
         # (temporary code parked here for showing all 6 menu option buttons in position)
         showImage( screen, "LagoonNebula.jpg" )
@@ -404,18 +433,21 @@ def main():
                 elif debugInfo:
                     #Display debugging info on screen relevent to mode
                     textsize = 38
+                    lineHeight = 24
+                    pygame.draw.rect(screen, Colour.Purple.value, pygame.Rect(10,10,480,160))
                     cursor = (10,10)
                     showText(screen, "Debug Information:", cursor, size=textsize)
-                    cursor = (cursor[0]+20,cursor[1]+20)
+                    cursor = (cursor[0]+20,cursor[1]+lineHeight)
                     showText(screen, "Power Limiting: {}%".format( rc.getMotorPowerLimit() ), cursor, size=textsize)
-                    cursor = (cursor[0],cursor[1]+20)
+                    cursor = (cursor[0],cursor[1]+lineHeight)
                     showText(screen, "Left motor ch1 pulse len: {}/4096".format( rc.getPWMPulseLength(rc.motorsLeftChannelA) ), cursor, size=textsize)
-                    cursor = (cursor[0],cursor[1]+20)
+                    cursor = (cursor[0],cursor[1]+lineHeight)
                     showText(screen, "Left motor ch2 pulse len: {}/4096".format( rc.getPWMPulseLength(rc.motorsLeftChannelB) ), cursor, size=textsize)
-                    cursor = (cursor[0],cursor[1]+20)
+                    cursor = (cursor[0],cursor[1]+lineHeight)
                     showText(screen, "Right motor ch1 pulse len: {}/4096".format( rc.getPWMPulseLength(rc.motorsRightChannelA) ), cursor, size=textsize)
-                    cursor = (cursor[0],cursor[1]+20)
+                    cursor = (cursor[0],cursor[1]+lineHeight)
                     showText(screen, "Right motor ch2 pulse len: {}/4096".format( rc.getPWMPulseLength(rc.motorsRightChannelB) ), cursor, size=textsize)
+                    pygame.display.flip()
                     
             # Trigger stick events and check for quit
             keepRunning = robotControl.controllerStatus() and not stopProgram
