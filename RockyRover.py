@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
-import pygame, random, time, math
+import pygame
 import RobotControl as rc
 from PygameController import RobotController
 from enum import Enum
+from os import system
 
 
 class Mode(Enum):
@@ -18,6 +19,7 @@ class MenuLevel(Enum):
     """
     top = 0
     close = 1
+    shutdownReboot = 2
     
     
 class Colour(Enum):
@@ -25,7 +27,12 @@ class Colour(Enum):
     Red = (255,0,0)
     Green = (0,255,0)
     Blue = (0,0,255)
+    Yellow = (255,255,0)
     White = (255,255,255)
+    Black = (0,0,0)
+    Brown = (120,60,0)
+    DarkBlue  = (0,0,200)
+    Purple = (100,0,100)
     
     
 #Declare globals
@@ -34,6 +41,7 @@ speed = 0
 angle = 90
 screen = None
 stopProgram = False
+debugInfo = False
 
 menu = MenuLevel.top
 borderX = 50
@@ -41,6 +49,11 @@ borderY = 35
 sepX = 250
 sepY = 225
 clickSequence = 0 #Used to track screen clicks to return to menus from running modes
+#Trackers of button states on controller
+selectBtnPressed = False
+startBtnPressed = False
+leftBtn1Pressed = False
+rightBtn1Pressed = False
 
     
 def initStatus(status):
@@ -80,6 +93,45 @@ def rightStickChangeHandler(valLR, valUD):
         rc.setSteeringRearRight(angleRear)
 
 
+def selectBtnHandler(state):
+    """ Handler for Select button on game controller """
+    global selectBtnPressed
+    selectBtnPressed = state
+    
+    
+def startBtnHandler(state):
+    """ Handler for Start button on game controller """
+    global startBtnPressed
+    startBtnPressed = state
+    
+    
+def homeBtnHandler(state):
+    """ Handler for Home button on game controller """
+    global debugInfo
+    
+    #Toggle state of debug info
+    if state == True:
+        debugInfo = not debugInfo
+    
+    #Reset background if turning debug info off (to clear displayed info)
+    if debugInfo == False:
+        setModeBackground()
+        
+    
+def leftBtn1Handler(state):
+    """ Handler for Start button on game controller """
+    global leftBtn1Pressed
+    leftBtn1Pressed = state
+    updatePowerLimiting()
+    
+    
+def rightBtn1Handler(state):
+    """ Handler for Start button on game controller """
+    global rightBtn1Pressed
+    rightBtn1Pressed = state
+    updatePowerLimiting()
+    
+    
 def mouseDownHandler(pos, btn):
     """ Handler function for mouse down.
         Determine which menu control was clicked using mouse position
@@ -99,13 +151,22 @@ def mouseDownHandler(pos, btn):
                     showMenu(MenuLevel.close)
             elif menu == MenuLevel.close :
                 if btn == 0 :
-                    #TODO: Change to trigger a shutdown
-                    stopProgram = True
+                    showMenu(MenuLevel.shutdownReboot)
                 elif btn == 1 :
+                    #Set flag to exit main program loop
                     stopProgram = True
                 elif btn == 2 :
                     showMenu(MenuLevel.top)
-                    
+            elif menu == MenuLevel.shutdownReboot :
+                if btn == 0 :
+                    #Cancel where shutdown was, so don't accidently shutdown on a double tap
+                    showMenu(MenuLevel.close)
+                elif btn == 1 :
+                    #Trigger a reboot
+                    system("reboot")
+                elif btn == 2 :
+                    #Trigger a shutdown
+                    system("shutdown now")
             else:
                 showMenu(MenuLevel.close)
                 showText(screen,"Btn: {}".format(btn), (10,10) )
@@ -138,6 +199,28 @@ def mouseDownHandler(pos, btn):
                 setMode(Mode.menu)
 
     
+def updatePowerLimiting():
+    """ Sets the maximum motor power based on controller btn states.
+        Default power limit is 40% equivalent of motor driver Vin voltage.
+        Holding left button 1 raises limit to 80%
+        Holding right button 1 raises limit to 60%
+        Holding both left & right button 1 raises limit to 100%
+    """
+    powerLimit = 30
+    
+    if leftBtn1Pressed:
+        powerLimit += 30
+        
+    if rightBtn1Pressed:
+        powerLimit += 40
+        
+    rc.setMotorPowerLimit(powerLimit)
+    
+    #Update motor speeds
+    rc.setLeftMotorPower(speed)
+    rc.setRightMotorPower(speed)
+
+    
 def showImage(screen,filename, position = [0,0]):
     """ Displays an image on the display at the specified coordinates
         If no coordinates specified then will position at top left
@@ -153,11 +236,16 @@ def showImage(screen,filename, position = [0,0]):
         screen.blit( textBitmap, (50, 200) )
     
     
-def showText(screen, text, position = [0,0], colour = Colour.White, size = 40 ):
+def showText(screen, text, position = [0,0], colour = Colour.White, size = 40, shadow=False, shadowCol=Colour.Black ):
     """ Displays text at the specified coordinates
         If no coordinates specified then will position at top left
     """
     font = pygame.font.Font(None, size)
+    
+    if shadow:
+        textBitmap = font.render(text, True, shadowCol.value )
+        screen.blit( textBitmap, (position[0]+1,position[1]+1) )
+    
     textBitmap = font.render(text, True, colour.value )
     screen.blit( textBitmap, position )
     
@@ -173,27 +261,44 @@ def showMenu(level):
     menu = level
     
     if level == MenuLevel.top :
+        # Main menu with top level options
         showImage( screen, "LagoonNebula.jpg" )
         borderX = 50
         borderY = 35
         sepX = 250
         sepY = 225
         showImage( screen, "jupiter1_btn180.gif", (borderX,borderY) )
-        showText(screen, "Manual Control", (borderX+20,borderY+185), Colour.Blue, 30 )
+        showText(screen, "Manual Control", (borderX+20,borderY+185), Colour.Blue, 30, True )
+        showImage( screen, "mars1_btn180.gif", (borderX+sepX,borderY) )
+        showText(screen, "Sensor Test", (borderX+sepX+34,borderY+185), Colour.Blue, 30, True )
         showImage( screen, "venus1_btn180.gif", (borderX+2*sepX,borderY+sepY) )
-        showText(screen, "Exit", (borderX+2*sepX+70,borderY+sepY+185), Colour.Blue, 30 )
+        showText(screen, "Exit", (borderX+2*sepX+70,borderY+sepY+185), Colour.Blue, 30, True )
     elif level == MenuLevel.close :
+        # Program exit confirmation menu
         showImage( screen, "LagoonNebula.jpg" )
         borderX = 50
         borderY = 150
         sepX = 250
-        showImage( screen, "mercury1_btn180.gif", (borderX,borderY) )
-        showText(screen, "Shutdown", (borderX+38,borderY+185), Colour.Blue, 30 )
+        showImage( screen, "venus1_btn180.gif", (borderX,borderY) )
+        showText(screen, "Shutdown", (borderX+44,borderY+185), Colour.Blue, 30, True )
         showImage( screen, "mars2_btn180.gif", (borderX+sepX,borderY) )
-        showText(screen, "Desktop", (borderX+sepX+54,borderY+185), Colour.Blue, 30 )
+        showText(screen, "Desktop", (borderX+sepX+58,borderY+185), Colour.Blue, 30, True )
         showImage( screen, "venus2_btn180.gif", (borderX+2*sepX,borderY) )
-        showText(screen, "Cancel", (borderX+2*sepX+54,borderY+185), Colour.Blue, 30 )
+        showText(screen, "Cancel", (borderX+2*sepX+54,borderY+185), Colour.Blue, 30, True )
+    elif level == MenuLevel.shutdownReboot :
+        # Shutdown/Reboot confirmation menu
+        showImage( screen, "LagoonNebula.jpg" )
+        borderX = 50
+        borderY = 150
+        sepX = 250
+        showImage( screen, "moon-farside_btn180.gif", (borderX,borderY) )
+        showText(screen, "Cancel", (borderX+58,borderY+185), Colour.Blue, 30, True )
+        showImage( screen, "jupiter1_btn180.gif", (borderX+sepX,borderY) )
+        showText(screen, "Reboot", (borderX+sepX+58,borderY+185), Colour.Blue, 30, True )
+        showImage( screen, "venus1_btn180.gif", (borderX+2*sepX,borderY) )
+        showText(screen, "Shutdown", (borderX+2*sepX+42,borderY+185), Colour.Blue, 30, True )
     else:
+        # (temporary code parked here for showing all 6 menu option buttons in position)
         showImage( screen, "LagoonNebula.jpg" )
         borderX = 50
         borderY = 35
@@ -256,6 +361,7 @@ def getBtn(pos):
         
     return btn
 
+
 def setMode(newMode):
     global mode
     
@@ -269,11 +375,24 @@ def setMode(newMode):
     if mode == Mode.menu :
         showMenu(MenuLevel.top)
     elif mode == Mode.manual :
+        setModeBackground()
+        #Reset steering to straight ahead (powers up servos)
+        rc.setSteeringFrontLeft(90)
+        rc.setSteeringFrontRight(90)
+        rc.setSteeringRearLeft(90)
+        rc.setSteeringRearRight(90)
+        #Initialise power limiting
+        updatePowerLimiting()
+        
+
+def setModeBackground():
+    """ Sets the display background for the current mode """
+    if mode == Mode.manual :
         showImage( screen, "iss_solar_panel_orange.jpg" )
+    
 
 def main():
     global screen
-    global stopProgram
     
     ## Check that required hardware is connected ##
     
@@ -290,6 +409,11 @@ def main():
         robotControl = RobotController("Rocky Rover Remote Control", initStatus,
             leftStickChanged = leftStickChangeHandler,
             rightStickChanged = rightStickChangeHandler,
+            selectBtnChanged = selectBtnHandler,
+            startBtnChanged = startBtnHandler,
+            homeBtnChanged = homeBtnHandler,
+            leftBtn1Changed = leftBtn1Handler, 
+            rightBtn1Changed = rightBtn1Handler, 
             mouseDown = mouseDownHandler)
         
         if robotControl.initialised :
@@ -312,6 +436,30 @@ def main():
             message = "Speed: {}, Steering: {}".format(speed,angle)
             robotControl.message = message
             
+            #Check for controller button combinations in different modes
+            if mode == Mode.manual :
+                #Exit to menu if both select and start buttons are held down at the same time
+                if selectBtnPressed and startBtnPressed:
+                    setMode(Mode.menu)
+                elif debugInfo:
+                    #Display debugging info on screen relevent to mode
+                    textsize = 38
+                    lineHeight = 24
+                    pygame.draw.rect(screen, Colour.Purple.value, pygame.Rect(10,10,480,160))
+                    cursor = (10,10)
+                    showText(screen, "Debug Information:", cursor, size=textsize)
+                    cursor = (cursor[0]+20,cursor[1]+lineHeight)
+                    showText(screen, "Power Limiting: {}%".format( rc.getMotorPowerLimit() ), cursor, size=textsize)
+                    cursor = (cursor[0],cursor[1]+lineHeight)
+                    showText(screen, "Left motor ch1 pulse len: {}/4096".format( rc.getPWMPulseLength(rc.motorsLeftChannelA) ), cursor, size=textsize)
+                    cursor = (cursor[0],cursor[1]+lineHeight)
+                    showText(screen, "Left motor ch2 pulse len: {}/4096".format( rc.getPWMPulseLength(rc.motorsLeftChannelB) ), cursor, size=textsize)
+                    cursor = (cursor[0],cursor[1]+lineHeight)
+                    showText(screen, "Right motor ch1 pulse len: {}/4096".format( rc.getPWMPulseLength(rc.motorsRightChannelA) ), cursor, size=textsize)
+                    cursor = (cursor[0],cursor[1]+lineHeight)
+                    showText(screen, "Right motor ch2 pulse len: {}/4096".format( rc.getPWMPulseLength(rc.motorsRightChannelB) ), cursor, size=textsize)
+                    pygame.display.flip()
+                    
             # Trigger stick events and check for quit
             keepRunning = robotControl.controllerStatus() and not stopProgram
     
