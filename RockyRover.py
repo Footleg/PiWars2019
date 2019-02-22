@@ -271,6 +271,9 @@ def showMenu(level):
         showText(screen, "Manual Control", (borderX+20,borderY+185), Colour.Blue, 30, True )
         showImage( screen, "mars1_btn180.gif", (borderX+sepX,borderY) )
         showText(screen, "Sensor Test", (borderX+sepX+34,borderY+185), Colour.Blue, 30, True )
+        showImage( screen, "pluto_btn180.gif", (borderX+2*sepX,borderY) )
+        showImage( screen, "neptune_btn180.gif", (borderX,borderY+sepY) )
+        showImage( screen, "moon_btn180.gif", (borderX+sepX,borderY+sepY) )
         showImage( screen, "venus1_btn180.gif", (borderX+2*sepX,borderY+sepY) )
         showText(screen, "Exit", (borderX+2*sepX+70,borderY+sepY+185), Colour.Blue, 30, True )
     elif level == MenuLevel.close :
@@ -279,11 +282,11 @@ def showMenu(level):
         borderX = 50
         borderY = 150
         sepX = 250
-        showImage( screen, "venus1_btn180.gif", (borderX,borderY) )
+        showImage( screen, "mercury1_btn180.gif", (borderX,borderY) )
         showText(screen, "Shutdown", (borderX+44,borderY+185), Colour.Blue, 30, True )
-        showImage( screen, "mars2_btn180.gif", (borderX+sepX,borderY) )
+        showImage( screen, "neptune_btn180.gif", (borderX+sepX,borderY) )
         showText(screen, "Desktop", (borderX+sepX+58,borderY+185), Colour.Blue, 30, True )
-        showImage( screen, "venus2_btn180.gif", (borderX+2*sepX,borderY) )
+        showImage( screen, "saturn_btn180.gif", (borderX+2*sepX,borderY) )
         showText(screen, "Cancel", (borderX+2*sepX+54,borderY+185), Colour.Blue, 30, True )
     elif level == MenuLevel.shutdownReboot :
         # Shutdown/Reboot confirmation menu
@@ -291,25 +294,12 @@ def showMenu(level):
         borderX = 50
         borderY = 150
         sepX = 250
-        showImage( screen, "moon-farside_btn180.gif", (borderX,borderY) )
+        showImage( screen, "saturn_btn180.gif", (borderX,borderY) )
         showText(screen, "Cancel", (borderX+58,borderY+185), Colour.Blue, 30, True )
-        showImage( screen, "jupiter1_btn180.gif", (borderX+sepX,borderY) )
+        showImage( screen, "uranus_btn180.gif", (borderX+sepX,borderY) )
         showText(screen, "Reboot", (borderX+sepX+58,borderY+185), Colour.Blue, 30, True )
         showImage( screen, "venus1_btn180.gif", (borderX+2*sepX,borderY) )
         showText(screen, "Shutdown", (borderX+2*sepX+42,borderY+185), Colour.Blue, 30, True )
-    else:
-        # (temporary code parked here for showing all 6 menu option buttons in position)
-        showImage( screen, "LagoonNebula.jpg" )
-        borderX = 50
-        borderY = 35
-        sepX = 250
-        sepY = 225
-        showImage( screen, "mercury2_btn180.gif", (borderX,borderY) )
-        showImage( screen, "mars_btn180.gif", (borderX+sepX,borderY+sepY) )
-        showImage( screen, "venus_btn180.gif", (borderX+2*sepX,borderY) )
-        showImage( screen, "jupiter2_btn180.gif", (borderX,borderY+sepY) )
-        showImage( screen, "moon_btn180.gif", (borderX+sepX,borderY) )
-        showImage( screen, "saturn_btn180.gif", (borderX+2*sepX,borderY+sepY) )
     
 
 def getBtn(pos):
