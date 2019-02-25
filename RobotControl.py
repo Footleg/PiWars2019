@@ -127,6 +127,8 @@ def setRightMotorPower(power):
 def stopAll():
     pwmb.allOff()
     
+def drawVirtualRobot(screen):
+    pwmb.drawVirtualRobot(screen)
     
 def main():
     """ Test function for servos and motors

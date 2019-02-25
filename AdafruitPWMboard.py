@@ -68,9 +68,9 @@ def setServoPosition(channel, position):
         print("ChL1:{},ChL2:{}".format(motorChPctOnL1,motorChPctOnL2) )
 
         if validChannel:
-            drawVirtualRobot()
+            drawVirtualRobot( pygame.display.get_surface() )
             channelPulseLengths[channel] = pulse
-        
+
     
 def setMotorPowerLimiting(percentage):
     """ Sets limit to maximum motor power (as a percentage of motor board input voltage)
@@ -127,7 +127,7 @@ def setPercentageOn(channel, percent):
         displayError("Call to set servo position on channel {} which has no servo attached.".format(channel))
     
     if validChannel:
-        drawVirtualRobot()
+        drawVirtualRobot( pygame.display.get_surface() )
         channelPulseLengths[channel] = pulse
         
     
@@ -138,11 +138,8 @@ def allOff():
     channelPulseLengths = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
     
     
-def drawVirtualRobot():
+def drawVirtualRobot(screen):
     """ Draw graphical representation of robot on screen, indicating wheel positions and motor speeds """
-    
-    #Get reference to screen for drawing onto
-    screen = pygame.display.get_surface()
     
     #Reset screen with a background image
     image = pygame.image.load( "mars_hubble_canyon.jpg" ).convert()
