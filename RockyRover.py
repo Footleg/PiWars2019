@@ -5,7 +5,7 @@ import RobotControl as rc
 from PygameController import RobotController
 from enum import Enum
 from os import system
-import Sensors
+import Sensors, ledMatrixDisplays
 
 class Mode(Enum):
     """ Modes Enum class """
@@ -398,8 +398,6 @@ def main():
     pygame.init()
     screen_w = pygame.display.Info().current_w
     screen_h = pygame.display.Info().current_h
-
-    # Define which inputs and outputs are configured
     
     #Run in try..finally structure so that program exits gracefully on hitting any
     #errors in the callback functions
@@ -416,6 +414,7 @@ def main():
         
         if robotControl.initialised :
             keepRunning = True
+            robotControl.displayControllerOutput = False
             #Success, we have a game controller connected. Set up screen
             screen_size = [800,480]
             display_mode = 0 #Default to windowed mode
@@ -424,7 +423,8 @@ def main():
                 display_mode = pygame.FULLSCREEN
             robotControl.screen = pygame.display.set_mode(screen_size,display_mode)
             screen = robotControl.screen
-            robotControl.displayControllerOutput = False
+            # Create LED matrix display instance after pygame display is defined for virtual LED display to work
+            eyes = ledMatrixDisplays.LEDMatrixDisplays()
             setMode(Mode.menu)
         else:
             keepRunning = False
@@ -476,6 +476,7 @@ def main():
                 pygame.draw.polygon(screen, Colour.Purple.value, [leftSource,leftEnd1,leftEnd2])
                 pygame.draw.polygon(screen, Colour.Purple.value, [rightSource,rightEnd1,rightEnd2])
                 pygame.draw.polygon(screen, Colour.Purple.value, [frontSource,frontEnd1,frontEnd2])
+                eyes.openEyes()
                 pygame.display.flip()
                 
             # Trigger stick events and check for quit
