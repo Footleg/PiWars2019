@@ -38,13 +38,13 @@ class RGBMatrix5x5():
             #Render array upside down (rotated 180 degrees)             
             for x in range(5):
                 for y in range(5):
-                    idx = 24 - (y*5+x)
+                    idx = 24 - (y*5+4-x)
                     pygame.draw.circle(self.SCREEN, self.LEDS[idx],(x*20+marginX+LED_DIA,y*20+20+LED_DIA),LED_DIA)
         else:
             #Render array upright             
             for x in range(5):
                 for y in range(5):
-                    idx = y*5+x
+                    idx = y*5+4-x
                     pygame.draw.circle(self.SCREEN, self.LEDS[idx],(x*20+marginX+LED_DIA,y*20+20+LED_DIA),LED_DIA)
     
     def clear(self):

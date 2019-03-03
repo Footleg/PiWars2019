@@ -11,12 +11,14 @@ class LEDMatrixDisplays:
     def __init__(self):
         self.d1 = RGBMatrix5x5(0x74)
         self.d2 = RGBMatrix5x5(0x77)
-        self.d1.clear()
-        self.d1.show()
-        self.d1.clear()
-        self.d1.show()
+        self.clear()
         
-
+    def clear(self):
+        self.d1.clear()
+        self.d1.show()
+        self.d2.clear()
+        self.d2.show()
+        
     def reshow(self):
         self.d1.show()
         self.d2.show()
@@ -28,28 +30,28 @@ class LEDMatrixDisplays:
             #Rotate 90 deg
             for y in range(0,5):
                 for x in range(0,5):
-                    i = 24 - (5*x+4-y)
+                    i = 5*x+y
                     display.set_pixel(x,y,pattern[i][0],pattern[i][1],pattern[i][2])
             
         elif rotate==2:
             #Rotate 180 deg
             for y in range(0,5):
                 for x in range(0,5):
-                    i = 24 - (5*y+x)
+                    i = 24 - (5*y+4-x)
                     display.set_pixel(x,y,pattern[i][0],pattern[i][1],pattern[i][2])
             
         elif rotate==3:
             #Rotate 270 deg
             for y in range(0,5):
                 for x in range(0,5):
-                    i = 5*x+4-y
+                    i = 24 - (5*x+y)
                     display.set_pixel(x,y,pattern[i][0],pattern[i][1],pattern[i][2])
             
         else:
             #No rotation
             for y in range(0,5):
                 for x in range(0,5):
-                    i = 5*y+x
+                    i = 5*y+4-x
                     display.set_pixel(x,y,pattern[i][0],pattern[i][1],pattern[i][2])
 
         display.show()

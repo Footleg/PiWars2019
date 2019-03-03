@@ -433,7 +433,6 @@ def main():
             eyes.addFrame(ledMatrixDisplays.eye_lid2)
             eyes.addFrame(ledMatrixDisplays.eye_lid1)
             eyes.addFrame(ledMatrixDisplays.eye_open)
-            eyes.addFrame(ledMatrixDisplays.one)
             setMode(Mode.menu)
         else:
             keepRunning = False
@@ -467,7 +466,6 @@ def main():
                     showText(screen, "Right motor ch1 pulse len: {}/4096".format( rc.getPWMPulseLength(rc.motorsRightChannelA) ), cursor, size=textsize)
                     cursor = (cursor[0],cursor[1]+lineHeight)
                     showText(screen, "Right motor ch2 pulse len: {}/4096".format( rc.getPWMPulseLength(rc.motorsRightChannelB) ), cursor, size=textsize)
-                    pygame.display.flip()
             elif mode == Mode.sensorsTest :
                 #Get sensor readings and display on screen
                 leftDist = Sensors.readDistance(1)
@@ -487,13 +485,15 @@ def main():
                 pygame.draw.polygon(screen, Colour.Purple.value, [leftSource,leftEnd1,leftEnd2])
                 pygame.draw.polygon(screen, Colour.Purple.value, [rightSource,rightEnd1,rightEnd2])
                 pygame.draw.polygon(screen, Colour.Purple.value, [frontSource,frontEnd1,frontEnd2])
-                if frame > 1:
-                    eyes.showNext()
-                    frame = 0
-                else:
-                    #Re-render current (only needed for onscreen display, but no harm done calling for real displays)
-                    eyes.reshow()
-                pygame.display.flip()
+            
+            #Update led RGB matrix displays with next frame of any queued animation
+            if frame > 2:
+                eyes.showNext()
+                frame = 0
+            else:
+                #Re-render current (only needed for onscreen display, but no harm done calling for real displays)
+                eyes.reshow()
+            pygame.display.flip()
                 
             # Trigger stick events and check for quit
             keepRunning = robotControl.controllerStatus() and not stopProgram
@@ -501,6 +501,8 @@ def main():
     finally:
         #Clean up and turn off hardware (motors)
         rc.stopAll()
+        #Clear rgb matrix displays
+        eyes.clear()
         pygame.quit()
 
 
