@@ -487,7 +487,7 @@ def main():
                 pygame.draw.polygon(screen, Colour.Purple.value, [leftSource,leftEnd1,leftEnd2])
                 pygame.draw.polygon(screen, Colour.Purple.value, [rightSource,rightEnd1,rightEnd2])
                 pygame.draw.polygon(screen, Colour.Purple.value, [frontSource,frontEnd1,frontEnd2])
-                if frame > 1:
+                if frame > 0:
                     eyes.showNext()
                     frame = 0
                 else:
