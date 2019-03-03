@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import pygame
+import pygame, random
 import RobotControl as rc
 from PygameController import RobotController
 from enum import Enum
@@ -36,11 +36,12 @@ class Colour(Enum):
     
 #Declare globals
 mode = Mode.menu
-speed = 0
+speedL = 0
+speedR = 0
 angle = 90
 screen = None
 stopProgram = False
-debugInfo = False
+debugInfo = 0
 
 menu = MenuLevel.top
 borderX = 50
@@ -69,20 +70,31 @@ def leftStickChangeHandler(valLR, valUD):
     """ Handler function for left analogue stick.
         Controls motor speed using Up/Down stick position
     """
-    global speed
+    global speedL, speedR
     
     if mode == Mode.manual:
-        speed = -100 * valUD
-        rc.setLeftMotorPower(speed)
-        rc.setRightMotorPower(speed)
+        #Reset steering servos straight if angle is 90 in case we have been in spot steering mode
+        if angle == 90:
+            rc.setSteeringStraight()
+            
+        speedL = -100 * valUD
+        speedR = speedL
+        setMotorSpeeds()
 
 
 def rightStickChangeHandler(valLR, valUD):
     """ Handler function for right analogue stick.
         Controls steering using Left/Right stick position
     """
-    global angle
+    global angle, speedL, speedR
+    
     if mode == Mode.manual:
+        #Turn off motors if in spot turn mode and manual stick steering is activated
+        if speedL == -speedR:
+            speedL = 0
+            speedR = 0
+            setMotorSpeeds()
+            
         angle = (-valLR * 40) + 90
         angleRear = (valLR * 40) + 90
         
@@ -92,6 +104,39 @@ def rightStickChangeHandler(valLR, valUD):
         rc.setSteeringRearRight(angleRear)
 
 
+def leftTriggerChangeHandler(value):
+    """ Handler for left trigger.
+        If not turning then controls spot turning.
+    """
+    global speedL, speedR
+    
+    if mode == Mode.manual:
+        if angle == 90:
+            rc.spotTurnSteering(40)
+            speedR = (value + 1) * 50
+            speedL = -speedR
+            setMotorSpeeds()
+    
+    
+def rightTriggerChangeHandler(value):
+    """ Handler for right trigger.
+        If not turning then controls spot turning.
+    """
+    global speedL, speedR
+    
+    if mode == Mode.manual:
+        if angle == 90:
+            rc.spotTurnSteering(40)
+            speedL = (value + 1) * 50
+            speedR = -speedL
+            setMotorSpeeds()
+    
+
+def setMotorSpeeds():
+    rc.setLeftMotorPower(speedL)
+    rc.setRightMotorPower(speedR)
+    
+    
 def selectBtnHandler(state):
     """ Handler for Select button on game controller """
     global selectBtnPressed
@@ -110,10 +155,16 @@ def homeBtnHandler(state):
     
     #Toggle state of debug info
     if state == True:
-        debugInfo = not debugInfo
-    
+        debugInfo += 1
+        if debugInfo > 2:
+            debugInfo = 0
+        if debugInfo > 0:
+            rc.showRobotGraphic = True
+        else:
+            rc.showRobotGraphic = False
+            
     #Reset background if turning debug info off (to clear displayed info)
-    if debugInfo == False:
+    if debugInfo == 0:
         setModeBackground()
         
     
@@ -221,9 +272,8 @@ def updatePowerLimiting():
         
     rc.setMotorPowerLimit(powerLimit)
     
-    #Update motor speeds
-    rc.setLeftMotorPower(speed)
-    rc.setRightMotorPower(speed)
+    #Update motor speeds with new speed level
+    setMotorSpeeds()
 
     
 def showImage(screen,filename, position = [0,0]):
@@ -405,6 +455,8 @@ def main():
         robotControl = RobotController("Rocky Rover Remote Control", initStatus,
             leftStickChanged = leftStickChangeHandler,
             rightStickChanged = rightStickChangeHandler,
+            leftTriggerChanged = leftTriggerChangeHandler,
+            rightTriggerChanged = rightTriggerChangeHandler,                           
             selectBtnChanged = selectBtnHandler,
             startBtnChanged = startBtnHandler,
             homeBtnChanged = homeBtnHandler,
@@ -425,13 +477,7 @@ def main():
             screen = robotControl.screen
             # Create LED matrix display instance after pygame display is defined for virtual LED display to work
             eyes = ledMatrixDisplays.LEDMatrixDisplays()
-            # Put test frames onto queue
-            eyes.addFrame(ledMatrixDisplays.eye_open)
-            eyes.addFrame(ledMatrixDisplays.eye_lid1)
-            eyes.addFrame(ledMatrixDisplays.eye_lid2)
-            eyes.addFrame(ledMatrixDisplays.eye_lid3)
-            eyes.addFrame(ledMatrixDisplays.eye_lid2)
-            eyes.addFrame(ledMatrixDisplays.eye_lid1)
+            # Display eyes on LED matrix displays
             eyes.addFrame(ledMatrixDisplays.eye_open)
             setMode(Mode.menu)
         else:
@@ -439,17 +485,28 @@ def main():
             
         # -------- Main Program Loop -----------
         frame = 0
+        blinkCounter = 0
+        blinkPause = 0
         while keepRunning == True :
             frame += 1
-            message = "Speed: {}, Steering: {}".format(speed,angle)
-            robotControl.message = message
+            #message = "Speed: {}, Steering: {}".format(speed,angle)
+            #robotControl.message = message
             
-            #Check for controller button combinations in different modes
-            if mode == Mode.manual :
-                #Exit to menu if both select and start buttons are held down at the same time
-                if selectBtnPressed and startBtnPressed:
-                    setMode(Mode.menu)
-                elif debugInfo:
+            #Exit to menu if both select and start buttons are held down at the same time
+            if selectBtnPressed and startBtnPressed:
+                setMode(Mode.menu)
+
+            #Check for controller button combinations and queue up animations in different modes
+            if mode == Mode.menu :
+                #Queue up blink after random number of frames
+                if blinkCounter == 0:
+                    blinkPause = random.randint(100,250)
+                blinkCounter += 1
+                if blinkCounter > blinkPause:
+                    blinkCounter = 0
+                    eyes.blink()
+            elif mode == Mode.manual :
+                if debugInfo == 1:
                     #Display debugging info on screen relevent to mode
                     textsize = 38
                     lineHeight = 24

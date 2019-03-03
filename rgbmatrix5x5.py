@@ -24,7 +24,7 @@ class RGBMatrix5x5():
         #print("Set pixel")
         
     def show(self):
-        print("Update LEDS {}".format(self.ADDRESS) )
+        #print("Update LEDS {}".format(self.ADDRESS) )
         if self.ADDRESS == 0x74:
             marginX = 170
         elif self.ADDRESS == 0x77:
