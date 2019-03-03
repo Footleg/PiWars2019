@@ -9,6 +9,7 @@ import VL53L1X
 #Sensors and channels configuration
 leftChannel = 7
 rightChannel = 6
+frontChannel = 5
 
 #Initialise i2c multiplexer
 plexer = multiplexer(1,0x70)
@@ -21,6 +22,8 @@ plexer.channel(leftChannel)
 tof.open() # Initialise the i2c bus and configure the sensor
 plexer.channel(rightChannel)
 tof.open() # Initialise the i2c bus and configure the sensor
+plexer.channel(frontChannel)
+tof.open() # Initialise the i2c bus and configure the sensor
 
 
 def readDistance(sensor):
@@ -32,6 +35,12 @@ def readDistance(sensor):
     elif sensor == 2:
         #Right side sensor
         channel = rightChannel
+    elif sensor == 3:
+        #Right side sensor
+        channel = frontChannel
+    else:
+        #Channel with no sensors
+        channel = 0
         
     #Activate sensor i2c channel
     plexer.channel(channel)
@@ -49,6 +58,7 @@ def test():
     """ Test sensors connected to multiplexer """
     print("Left side distance: {}".format(readDistance(1)))
     print("Right side distance: {}".format(readDistance(2)))
+    print("Front distance: {}".format(readDistance(3)))
     
 if __name__ == '__main__':
     test()

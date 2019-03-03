@@ -5,13 +5,13 @@ import RobotControl as rc
 from PygameController import RobotController
 from enum import Enum
 from os import system
-
+import Sensors, ledMatrixDisplays
 
 class Mode(Enum):
     """ Modes Enum class """
     menu = 0
     manual = 1
-    automaze = 2
+    sensorsTest = 2
     
 class MenuLevel(Enum):
     """ MenuLevel Enum class.
@@ -20,8 +20,7 @@ class MenuLevel(Enum):
     top = 0
     close = 1
     shutdownReboot = 2
-    
-    
+   
 class Colour(Enum):
     """ Colour definitions Enum class """
     Red = (255,0,0)
@@ -134,7 +133,7 @@ def rightBtn1Handler(state):
     
 def mouseDownHandler(pos, btn):
     """ Handler function for mouse down.
-        Determine which menu control was clicked using mouse position
+        Determine which menu control was clicked using mouse position for each menu level
     """
     global stopProgram
     global clickSequence
@@ -147,8 +146,11 @@ def mouseDownHandler(pos, btn):
             if menu == MenuLevel.top :
                 if btn == 0 :
                     setMode(Mode.manual)
+                elif btn == 1 :
+                    setMode(Mode.sensorsTest)
                 elif btn == 5 :
                     showMenu(MenuLevel.close)
+                    
             elif menu == MenuLevel.close :
                 if btn == 0 :
                     showMenu(MenuLevel.shutdownReboot)
@@ -157,6 +159,7 @@ def mouseDownHandler(pos, btn):
                     stopProgram = True
                 elif btn == 2 :
                     showMenu(MenuLevel.top)
+                    
             elif menu == MenuLevel.shutdownReboot :
                 if btn == 0 :
                     #Cancel where shutdown was, so don't accidently shutdown on a double tap
@@ -167,7 +170,9 @@ def mouseDownHandler(pos, btn):
                 elif btn == 2 :
                     #Trigger a shutdown
                     system("shutdown now")
+                    
             else:
+                #Should not happen, but in case it does change to a valid menu and show which button was clicked
                 showMenu(MenuLevel.close)
                 showText(screen,"Btn: {}".format(btn), (10,10) )
         elif btn == 3:
@@ -271,6 +276,9 @@ def showMenu(level):
         showText(screen, "Manual Control", (borderX+20,borderY+185), Colour.Blue, 30, True )
         showImage( screen, "mars1_btn180.gif", (borderX+sepX,borderY) )
         showText(screen, "Sensor Test", (borderX+sepX+34,borderY+185), Colour.Blue, 30, True )
+        showImage( screen, "pluto_btn180.gif", (borderX+2*sepX,borderY) )
+        showImage( screen, "neptune_btn180.gif", (borderX,borderY+sepY) )
+        showImage( screen, "moon_btn180.gif", (borderX+sepX,borderY+sepY) )
         showImage( screen, "venus1_btn180.gif", (borderX+2*sepX,borderY+sepY) )
         showText(screen, "Exit", (borderX+2*sepX+70,borderY+sepY+185), Colour.Blue, 30, True )
     elif level == MenuLevel.close :
@@ -279,11 +287,11 @@ def showMenu(level):
         borderX = 50
         borderY = 150
         sepX = 250
-        showImage( screen, "venus1_btn180.gif", (borderX,borderY) )
+        showImage( screen, "mercury1_btn180.gif", (borderX,borderY) )
         showText(screen, "Shutdown", (borderX+44,borderY+185), Colour.Blue, 30, True )
-        showImage( screen, "mars2_btn180.gif", (borderX+sepX,borderY) )
+        showImage( screen, "neptune_btn180.gif", (borderX+sepX,borderY) )
         showText(screen, "Desktop", (borderX+sepX+58,borderY+185), Colour.Blue, 30, True )
-        showImage( screen, "venus2_btn180.gif", (borderX+2*sepX,borderY) )
+        showImage( screen, "saturn_btn180.gif", (borderX+2*sepX,borderY) )
         showText(screen, "Cancel", (borderX+2*sepX+54,borderY+185), Colour.Blue, 30, True )
     elif level == MenuLevel.shutdownReboot :
         # Shutdown/Reboot confirmation menu
@@ -291,25 +299,12 @@ def showMenu(level):
         borderX = 50
         borderY = 150
         sepX = 250
-        showImage( screen, "moon-farside_btn180.gif", (borderX,borderY) )
+        showImage( screen, "saturn_btn180.gif", (borderX,borderY) )
         showText(screen, "Cancel", (borderX+58,borderY+185), Colour.Blue, 30, True )
-        showImage( screen, "jupiter1_btn180.gif", (borderX+sepX,borderY) )
+        showImage( screen, "uranus_btn180.gif", (borderX+sepX,borderY) )
         showText(screen, "Reboot", (borderX+sepX+58,borderY+185), Colour.Blue, 30, True )
         showImage( screen, "venus1_btn180.gif", (borderX+2*sepX,borderY) )
         showText(screen, "Shutdown", (borderX+2*sepX+42,borderY+185), Colour.Blue, 30, True )
-    else:
-        # (temporary code parked here for showing all 6 menu option buttons in position)
-        showImage( screen, "LagoonNebula.jpg" )
-        borderX = 50
-        borderY = 35
-        sepX = 250
-        sepY = 225
-        showImage( screen, "mercury2_btn180.gif", (borderX,borderY) )
-        showImage( screen, "mars_btn180.gif", (borderX+sepX,borderY+sepY) )
-        showImage( screen, "venus_btn180.gif", (borderX+2*sepX,borderY) )
-        showImage( screen, "jupiter2_btn180.gif", (borderX,borderY+sepY) )
-        showImage( screen, "moon_btn180.gif", (borderX+sepX,borderY) )
-        showImage( screen, "saturn_btn180.gif", (borderX+2*sepX,borderY+sepY) )
     
 
 def getBtn(pos):
@@ -374,7 +369,8 @@ def setMode(newMode):
     #Update display for active mode
     if mode == Mode.menu :
         showMenu(MenuLevel.top)
-    elif mode == Mode.manual :
+    else:
+        #Initialise screen and hardware for all operating modes
         setModeBackground()
         #Reset steering to straight ahead (powers up servos)
         rc.setSteeringFrontLeft(90)
@@ -389,6 +385,8 @@ def setModeBackground():
     """ Sets the display background for the current mode """
     if mode == Mode.manual :
         showImage( screen, "iss_solar_panel_orange.jpg" )
+    elif mode == Mode.sensorsTest :
+        showImage( screen, "iss_solar_panel.jpg" )
     
 
 def main():
@@ -400,8 +398,6 @@ def main():
     pygame.init()
     screen_w = pygame.display.Info().current_w
     screen_h = pygame.display.Info().current_h
-
-    # Define which inputs and outputs are configured
     
     #Run in try..finally structure so that program exits gracefully on hitting any
     #errors in the callback functions
@@ -418,6 +414,7 @@ def main():
         
         if robotControl.initialised :
             keepRunning = True
+            robotControl.displayControllerOutput = False
             #Success, we have a game controller connected. Set up screen
             screen_size = [800,480]
             display_mode = 0 #Default to windowed mode
@@ -426,13 +423,25 @@ def main():
                 display_mode = pygame.FULLSCREEN
             robotControl.screen = pygame.display.set_mode(screen_size,display_mode)
             screen = robotControl.screen
-            robotControl.displayControllerOutput = False
+            # Create LED matrix display instance after pygame display is defined for virtual LED display to work
+            eyes = ledMatrixDisplays.LEDMatrixDisplays()
+            # Put test frames onto queue
+            eyes.addFrame(ledMatrixDisplays.eye_open)
+            eyes.addFrame(ledMatrixDisplays.eye_lid1)
+            eyes.addFrame(ledMatrixDisplays.eye_lid2)
+            eyes.addFrame(ledMatrixDisplays.eye_lid3)
+            eyes.addFrame(ledMatrixDisplays.eye_lid2)
+            eyes.addFrame(ledMatrixDisplays.eye_lid1)
+            eyes.addFrame(ledMatrixDisplays.eye_open)
+            eyes.addFrame(ledMatrixDisplays.one)
             setMode(Mode.menu)
         else:
             keepRunning = False
             
         # -------- Main Program Loop -----------
+        frame = 0
         while keepRunning == True :
+            frame += 1
             message = "Speed: {}, Steering: {}".format(speed,angle)
             robotControl.message = message
             
@@ -459,7 +468,33 @@ def main():
                     cursor = (cursor[0],cursor[1]+lineHeight)
                     showText(screen, "Right motor ch2 pulse len: {}/4096".format( rc.getPWMPulseLength(rc.motorsRightChannelB) ), cursor, size=textsize)
                     pygame.display.flip()
-                    
+            elif mode == Mode.sensorsTest :
+                #Get sensor readings and display on screen
+                leftDist = Sensors.readDistance(1)
+                rightDist = Sensors.readDistance(2)
+                frontDist = Sensors.readDistance(3)
+                leftSource = (360,190)
+                leftEnd1 = (360 - leftDist/4,190-20)
+                leftEnd2 = (360 - leftDist/4,190+20)
+                rightSource = (440,190)
+                rightEnd1 = (440 + rightDist/4,190-20)
+                rightEnd2 = (440 + rightDist/4,190+20)
+                frontSource = (400,200)
+                frontEnd1 = (400-20,200 - frontDist/4)
+                frontEnd2 = (400+20,200 - frontDist/4)
+                setModeBackground()
+                rc.drawVirtualRobot(screen)
+                pygame.draw.polygon(screen, Colour.Purple.value, [leftSource,leftEnd1,leftEnd2])
+                pygame.draw.polygon(screen, Colour.Purple.value, [rightSource,rightEnd1,rightEnd2])
+                pygame.draw.polygon(screen, Colour.Purple.value, [frontSource,frontEnd1,frontEnd2])
+                if frame > 1:
+                    eyes.showNext()
+                    frame = 0
+                else:
+                    #Re-render current (only needed for onscreen display, but no harm done calling for real displays)
+                    eyes.reshow()
+                pygame.display.flip()
+                
             # Trigger stick events and check for quit
             keepRunning = robotControl.controllerStatus() and not stopProgram
     

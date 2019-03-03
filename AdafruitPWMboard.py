@@ -60,7 +60,7 @@ def setPercentageOn(channel, percent):
     global channelPulseLengths
     
     #Fully on pulse length is 4096.
-    #With 8V supply and 6V motors, limit to 75% of fully on
+    #Scale this down using percentage power limiting global variable value
     maxPulse = 4096 * motorPowerLimiting / 100
     
     #Convert percentage to pulse length
