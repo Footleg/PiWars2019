@@ -425,12 +425,23 @@ def main():
             screen = robotControl.screen
             # Create LED matrix display instance after pygame display is defined for virtual LED display to work
             eyes = ledMatrixDisplays.LEDMatrixDisplays()
+            # Put test frames onto queue
+            eyes.addFrame(ledMatrixDisplays.eye_open)
+            eyes.addFrame(ledMatrixDisplays.eye_lid1)
+            eyes.addFrame(ledMatrixDisplays.eye_lid2)
+            eyes.addFrame(ledMatrixDisplays.eye_lid3)
+            eyes.addFrame(ledMatrixDisplays.eye_lid2)
+            eyes.addFrame(ledMatrixDisplays.eye_lid1)
+            eyes.addFrame(ledMatrixDisplays.eye_open)
+            eyes.addFrame(ledMatrixDisplays.one)
             setMode(Mode.menu)
         else:
             keepRunning = False
             
         # -------- Main Program Loop -----------
+        frame = 0
         while keepRunning == True :
+            frame += 1
             message = "Speed: {}, Steering: {}".format(speed,angle)
             robotControl.message = message
             
@@ -476,7 +487,12 @@ def main():
                 pygame.draw.polygon(screen, Colour.Purple.value, [leftSource,leftEnd1,leftEnd2])
                 pygame.draw.polygon(screen, Colour.Purple.value, [rightSource,rightEnd1,rightEnd2])
                 pygame.draw.polygon(screen, Colour.Purple.value, [frontSource,frontEnd1,frontEnd2])
-                eyes.openEyes()
+                if frame > 1:
+                    eyes.showNext()
+                    frame = 0
+                else:
+                    #Re-render current (only needed for onscreen display, but no harm done calling for real displays)
+                    eyes.reshow()
                 pygame.display.flip()
                 
             # Trigger stick events and check for quit
