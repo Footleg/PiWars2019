@@ -501,6 +501,8 @@ def main():
     finally:
         #Clean up and turn off hardware (motors)
         rc.stopAll()
+        #Clear rgb matrix displays
+        eyes.clear()
         pygame.quit()
 
 

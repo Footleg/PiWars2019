@@ -11,12 +11,14 @@ class LEDMatrixDisplays:
     def __init__(self):
         self.d1 = RGBMatrix5x5(0x74)
         self.d2 = RGBMatrix5x5(0x77)
+        self.clear()
+        
+    def clear(self):
         self.d1.clear()
         self.d1.show()
         self.d2.clear()
         self.d2.show()
         
-
     def reshow(self):
         self.d1.show()
         self.d2.show()
