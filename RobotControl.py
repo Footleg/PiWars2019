@@ -32,6 +32,8 @@ servoPosFR = 0
 servoPosBL = 0
 servoPosBR = 0
 
+showRobotGraphic = False
+
 
 #==========================================================================================
 # Safe steering functions to ensure servos are not set beyond their limits of free movement
@@ -52,8 +54,10 @@ def setSteeringLegPositionSafely(angle, servoChannel, servoOffset):
     servoPos = servoPos + servoOffset
     
     #Set servo position
-    pwmb.setServoPosition(servoChannel, servoPos) 
-    drawVirtualRobot( pygame.display.get_surface() )
+    pwmb.setServoPosition(servoChannel, servoPos)
+    
+    if showRobotGraphic:
+        drawVirtualRobot( pygame.display.get_surface() )
     
     
 def setSteeringFrontLeft(angle):
@@ -84,8 +88,9 @@ def setSteeringRearRight(angle):
     """ Sets the position of the rear right steering servo """
     global servoPosBR
     
-    setSteeringLegPositionSafely(angle, servoRearRightChannel, servoRearRightOffset)
     servoPosBR = angle
+    setSteeringLegPositionSafely(angle, servoRearRightChannel, servoRearRightOffset)
+    #print("Rear Right angle: {}".format(angle) )
     
     
 def spotTurnSteering(angle):
@@ -95,8 +100,8 @@ def spotTurnSteering(angle):
     leftAngle = 90 + angle
     rightAngle = 90 - angle
 
-    setSteeringFrontLeft(leftAngle)
-    setSteeringFrontRight(rightAngle)
+    setSteeringFrontLeft(rightAngle)
+    setSteeringFrontRight(leftAngle)
     setSteeringRearLeft(leftAngle)
     setSteeringRearRight(rightAngle)
     
@@ -142,7 +147,8 @@ def setMotorPower(channelA, channelB, power):
         pwmb.setPercentageOn(channelA, 0)
         pwmb.setPercentageOn(channelB, 0)
     
-    drawVirtualRobot( pygame.display.get_surface() )
+    if showRobotGraphic:
+        drawVirtualRobot( pygame.display.get_surface() )
 
 
 def setLeftMotorPower(power):
@@ -213,7 +219,7 @@ def drawVirtualRobot(screen):
             pygame.draw.polygon(screen, PURPLE, [(175,arrowBot+30),(145,arrowBot),(205,arrowBot)])
         screen.blit( textBitmap, (160,220) )
 
-        motorSpeedR = int( (pwmb.channelPulseLengths[motorsRightChannelB]-pwmb.channelPulseLengths[motorsRightChannelA]) * 100 / 4096)
+        motorSpeedR = int( (pwmb.channelPulseLengths[motorsRightChannelA]-pwmb.channelPulseLengths[motorsRightChannelB]) * 100 / 4096)
         textBitmap = font.render("{}%".format(motorSpeedR), True, RED )
         arrowLength = 20 + abs(motorSpeedR * 2)
         arrowTop = 230-(arrowLength/2)

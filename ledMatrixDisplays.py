@@ -6,7 +6,8 @@ class LEDMatrixDisplays:
     """ Wrapper class representing a pair of 5x5 RGB LED matrix i2c display breakouts
     """
     
-    frameQueue = []
+    frameQueueL = []
+    frameQueueR = []
     
     def __init__(self):
         self.d1 = RGBMatrix5x5(0x74)
@@ -56,23 +57,44 @@ class LEDMatrixDisplays:
 
         display.show()
 
-    def addFrame(self,pattern):
-        self.frameQueue.append(pattern)
-    
-    def fetchFrame(self):
-        pattern = self.frameQueue[len(self.frameQueue)-1]
-        return pattern
-        
+
+    def addFrame(self,pattern,display=0):
+        """ Add frame to animation queue for specified display.
+            display 1 = left display only
+            display 2 = right display only
+            Any other value = both displays
+        """
+        if display != 2:
+            self.frameQueueL.append(pattern)
+        if display != 1:
+            self.frameQueueR.append(pattern)
+
+
     def showNext(self):
-        if len(self.frameQueue) > 0:
-            #Get next pattern
-            #pattern = self.frameQueue[len(self.frameQueue)-1]
-            pattern = self.frameQueue.pop(0)
+        if len(self.frameQueueL) > 0:
+            #Get next pattern from front of queue
+            pattern = self.frameQueueL.pop(0)
             self.showPattern(self.d1,pattern,2)
+        else:
+            self.d1.show()
+            
+        if len(self.frameQueueR) > 0:
+            #Get next pattern from front of queue
+            pattern = self.frameQueueR.pop(0)
             self.showPattern(self.d2,pattern)
         else:
-            self.reshow()
+            self.d2.show()
             
+            
+    def blink(self):
+        """ Queue up blink animation frames for both eyes """
+        self.addFrame(eye_lid1)
+        self.addFrame(eye_lid2)
+        self.addFrame(eye_lid3)
+        self.addFrame(eye_lid2)
+        self.addFrame(eye_lid1)
+        self.addFrame(eye_open)
+        
             
 #Define colour codes and patterns
 o = (0,0,0)
