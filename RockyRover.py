@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import pygame, random
+import pygame, random, time
 import RobotControl as rc
 from PygameController import RobotController
 from enum import Enum
@@ -12,6 +12,7 @@ class Mode(Enum):
     menu = 0
     manual = 1
     sensorsTest = 2
+    wallFollowing = 3
     
 class MenuLevel(Enum):
     """ MenuLevel Enum class.
@@ -41,7 +42,7 @@ speedR = 0
 angle = 90
 screen = None
 stopProgram = False
-debugInfo = 0
+debugInfo = 2 #Default to showing robot graphic (reset to 0 if running on HyperPixel display)
 
 menu = MenuLevel.top
 borderX = 50
@@ -49,6 +50,7 @@ borderY = 35
 sepX = 250
 sepY = 225
 clickSequence = 0 #Used to track screen clicks to return to menus from running modes
+
 #Trackers of button states on controller
 selectBtnPressed = False
 startBtnPressed = False
@@ -95,13 +97,17 @@ def rightStickChangeHandler(valLR, valUD):
             speedR = 0
             setMotorSpeeds()
             
-        angle = (-valLR * 40) + 90
-        angleRear = (valLR * 40) + 90
-        
-        rc.setSteeringFrontLeft(angle)
-        rc.setSteeringFrontRight(angle)
-        rc.setSteeringRearLeft(angleRear)
-        rc.setSteeringRearRight(angleRear)
+        angle = valLR * 40
+        setSteering(angle)
+
+
+def setSteering(angle):
+    frontAngle = -angle + 90
+    rearAngle = angle + 90
+    rc.setSteeringFrontLeft(frontAngle)
+    rc.setSteeringFrontRight(frontAngle)
+    rc.setSteeringRearLeft(rearAngle)
+    rc.setSteeringRearRight(rearAngle)
 
 
 def leftTriggerChangeHandler(value):
@@ -158,10 +164,8 @@ def homeBtnHandler(state):
         debugInfo += 1
         if debugInfo > 2:
             debugInfo = 0
-        if debugInfo > 0:
-            rc.showRobotGraphic = True
-        else:
-            rc.showRobotGraphic = False
+        
+        rc.showRobotGraphic = (debugInfo > 0)
             
     #Reset background if turning debug info off (to clear displayed info)
     if debugInfo == 0:
@@ -192,13 +196,15 @@ def mouseDownHandler(pos, btn):
     if mode == Mode.menu:
         if btn == 1:
             #Left-click (or Touchscreen press)
-            btn = getBtn(pos)
+            btn = getMenuBtn(pos)
             
             if menu == MenuLevel.top :
                 if btn == 0 :
                     setMode(Mode.manual)
                 elif btn == 1 :
                     setMode(Mode.sensorsTest)
+                elif btn == 2 :
+                    setMode(Mode.wallFollowing)
                 elif btn == 5 :
                     showMenu(MenuLevel.close)
                     
@@ -283,7 +289,7 @@ def showImage(screen,filename, position = [0,0]):
     try:
         image = pygame.image.load( filename ).convert()
         screen.blit( image, position )
-        print("Image placed at {}".format(position) )
+        #print("Image placed at {}".format(position) )
     except: 
         screen.fill( (0,0,0) )
         font = pygame.font.Font(None, 40)
@@ -305,6 +311,46 @@ def showText(screen, text, position = [0,0], colour = Colour.White, size = 40, s
     screen.blit( textBitmap, position )
     
     
+def showSensorGraphics(leftDist, rightDist, frontDist):
+    setModeBackground()
+    scale = 1
+    rc.drawVirtualRobot(screen)
+    leftSource = (360,190)
+    leftEnd1 = (360 - leftDist/scale,190-20)
+    leftEnd2 = (360 - leftDist/scale,190+20)
+    rightSource = (440,190)
+    rightEnd1 = (440 + rightDist/scale,190-20)
+    rightEnd2 = (440 + rightDist/scale,190+20)
+    frontSource = (400,200)
+    frontEnd1 = (400-20,200 - frontDist/scale)
+    frontEnd2 = (400+20,200 - frontDist/scale)
+    pygame.draw.polygon(screen, Colour.Yellow.value, [leftSource,leftEnd1,leftEnd2])
+    pygame.draw.polygon(screen, Colour.Yellow.value, [rightSource,rightEnd1,rightEnd2])
+    pygame.draw.polygon(screen, Colour.Yellow.value, [frontSource,frontEnd1,frontEnd2])
+    textsize = 20
+    showText(screen, "{}".format(leftDist), leftSource, size=textsize)
+    showText(screen, "{}".format(rightDist), rightSource, size=textsize)
+    showText(screen, "{}".format(frontDist), frontSource, size=textsize)
+    
+
+def showDebugData():
+    textsize = 38
+    lineHeight = 24
+    cursor = (10,280)
+    pygame.draw.rect(screen, Colour.Purple.value, pygame.Rect(10,280,480,160))
+    showText(screen, "Debug Information:", cursor, size=textsize)
+    cursor = (cursor[0]+20,cursor[1]+lineHeight)
+    showText(screen, "Power Limiting: {}%".format( rc.getMotorPowerLimit() ), cursor, size=textsize)
+    cursor = (cursor[0],cursor[1]+lineHeight)
+    showText(screen, "Left motor ch1 pulse len: {}/4096".format( rc.getPWMPulseLength(rc.motorsLeftChannelA) ), cursor, size=textsize)
+    cursor = (cursor[0],cursor[1]+lineHeight)
+    showText(screen, "Left motor ch2 pulse len: {}/4096".format( rc.getPWMPulseLength(rc.motorsLeftChannelB) ), cursor, size=textsize)
+    cursor = (cursor[0],cursor[1]+lineHeight)
+    showText(screen, "Right motor ch1 pulse len: {}/4096".format( rc.getPWMPulseLength(rc.motorsRightChannelA) ), cursor, size=textsize)
+    cursor = (cursor[0],cursor[1]+lineHeight)
+    showText(screen, "Right motor ch2 pulse len: {}/4096".format( rc.getPWMPulseLength(rc.motorsRightChannelB) ), cursor, size=textsize)
+    
+
 def showMenu(level):
     """ Displays the menu graphics on screen """
     global borderX
@@ -327,6 +373,7 @@ def showMenu(level):
         showImage( screen, "mars1_btn180.gif", (borderX+sepX,borderY) )
         showText(screen, "Sensor Test", (borderX+sepX+34,borderY+185), Colour.Blue, 30, True )
         showImage( screen, "pluto_btn180.gif", (borderX+2*sepX,borderY) )
+        showText(screen, "Wall Follow", (borderX+2*sepX+34,borderY+185), Colour.Blue, 30, True )
         showImage( screen, "neptune_btn180.gif", (borderX,borderY+sepY) )
         showImage( screen, "moon_btn180.gif", (borderX+sepX,borderY+sepY) )
         showImage( screen, "venus1_btn180.gif", (borderX+2*sepX,borderY+sepY) )
@@ -355,9 +402,19 @@ def showMenu(level):
         showText(screen, "Reboot", (borderX+sepX+58,borderY+185), Colour.Blue, 30, True )
         showImage( screen, "venus1_btn180.gif", (borderX+2*sepX,borderY) )
         showText(screen, "Shutdown", (borderX+2*sepX+42,borderY+185), Colour.Blue, 30, True )
-    
+      
 
-def getBtn(pos):
+def setModeBackground():
+    """ Sets the display background for the current mode """
+    if mode == Mode.manual :
+        showImage( screen, "iss_solar_panel_orange.jpg" )
+    elif mode == Mode.sensorsTest :
+        showImage( screen, "iss_solar_panel.jpg" )
+    elif mode == Mode.wallFollowing :
+        showImage( screen, "iss_solar_panel.jpg" )
+
+
+def getMenuBtn(pos):
     """ Returns the index of the button which the position matches on the screen menu.
         Returns -1 if no button at position.
     """
@@ -408,7 +465,8 @@ def getBtn(pos):
 
 
 def setMode(newMode):
-    global mode
+    """ Sets up robot for specified mode. """
+    global mode, speedL, speedR
     
     #Stop hardware
     rc.stopAll()
@@ -418,29 +476,84 @@ def setMode(newMode):
     
     #Update display for active mode
     if mode == Mode.menu :
+        Sensors.stopAll()
         showMenu(MenuLevel.top)
     else:
         #Initialise screen and hardware for all operating modes
         setModeBackground()
-        #Reset steering to straight ahead (powers up servos)
-        rc.setSteeringFrontLeft(90)
-        rc.setSteeringFrontRight(90)
-        rc.setSteeringRearLeft(90)
-        rc.setSteeringRearRight(90)
-        #Initialise power limiting
-        updatePowerLimiting()
         
+        if mode == Mode.manual :
+            initDriving()
+        elif mode == Mode.sensorsTest :
+            Sensors.startAll()
+        elif mode == Mode.wallFollowing :
+            Sensors.startAll()
+            initDriving()
+            #Set power level over-ride for auto mode
+            #rc.setMotorPowerLimit(50)
+            
 
-def setModeBackground():
-    """ Sets the display background for the current mode """
-    if mode == Mode.manual :
-        showImage( screen, "iss_solar_panel_orange.jpg" )
-    elif mode == Mode.sensorsTest :
-        showImage( screen, "iss_solar_panel.jpg" )
+def initDriving():
+    """ Initialise robot for driving modes """
+    #Reset steering to straight ahead (powers up servos)
+    rc.setSteeringFrontLeft(90)
+    rc.setSteeringFrontRight(90)
+    rc.setSteeringRearLeft(90)
+    rc.setSteeringRearRight(90)
+    #Initialise power limiting
+    updatePowerLimiting()
     
 
+def driveAuto(leftDist, rightDist, frontDist):
+    """ Update steering and motors based on sensor values """
+    global speedL, speedR
+    
+    minSideDist = 50
+    maxSideDist = 250
+    minFrontDist = 100
+    
+    if frontDist < minFrontDist:
+        #Stop if closer than min front distance from obstacle
+        speedL = 0
+        speedR = 0
+        setMotorSpeeds()
+    elif speedL == 0:
+        #Start motors if nothing closer than min front distance from obstacle
+        #and motors are stopped
+        speedL = 100
+        speedR = 100
+        setMotorSpeeds()
+    
+    distance = 5000
+    direction = 1
+    if leftDist < maxSideDist and rightDist < maxSideDist:
+        #Angle away from nearest side
+        if leftDist > rightDist:
+            distance = rightDist
+            direction = -1
+        elif leftDist < rightDist:
+            distance = leftDist
+    elif leftDist < maxSideDist:
+        distance = leftDist
+    elif rightDist < maxSideDist:
+        distance = rightDist
+        direction = -1
+        
+    if distance < minSideDist:
+        distance = minSideDist
+    
+    if distance > maxSideDist:
+        angle = 0 
+    else:
+        angle = direction * (40 - 40 * (distance - minSideDist) / (maxSideDist - minSideDist))
+        
+    print("Distance: {} Angle: {}".format(distance,angle) )
+
+    setSteering(angle)
+    
+    
 def main():
-    global screen
+    global screen, debugInfo
     
     ## Check that required hardware is connected ##
     
@@ -470,15 +583,25 @@ def main():
             #Success, we have a game controller connected. Set up screen
             screen_size = [800,480]
             display_mode = 0 #Default to windowed mode
+            autoCycles = 1 #Number of loop cycles before checking for controller
+
             if (screen_w == screen_size[0]) and (screen_h == screen_size[1]):
                 #Run fullscreen for HyperPixel display
                 display_mode = pygame.FULLSCREEN
+                #Default to not show debug info when on HyperPixel (on real robot)
+                debugInfo = 0
+                autoCycles = 50
             robotControl.screen = pygame.display.set_mode(screen_size,display_mode)
             screen = robotControl.screen
             # Create LED matrix display instance after pygame display is defined for virtual LED display to work
             eyes = ledMatrixDisplays.LEDMatrixDisplays()
             # Display eyes on LED matrix displays
             eyes.addFrame(ledMatrixDisplays.eye_open)
+            # Initialise whether to display robot graphic
+            rc.showRobotGraphic = (debugInfo > 0)
+            #Initialise tof sensors
+            Sensors.initialise()
+
             setMode(Mode.menu)
         else:
             keepRunning = False
@@ -487,6 +610,7 @@ def main():
         frame = 0
         blinkCounter = 0
         blinkPause = 0
+        timeC = time.perf_counter() 
         while keepRunning == True :
             frame += 1
             #message = "Speed: {}, Steering: {}".format(speed,angle)
@@ -508,41 +632,30 @@ def main():
             elif mode == Mode.manual :
                 if debugInfo == 1:
                     #Display debugging info on screen relevent to mode
-                    textsize = 38
-                    lineHeight = 24
-                    pygame.draw.rect(screen, Colour.Purple.value, pygame.Rect(10,10,480,160))
-                    cursor = (10,10)
-                    showText(screen, "Debug Information:", cursor, size=textsize)
-                    cursor = (cursor[0]+20,cursor[1]+lineHeight)
-                    showText(screen, "Power Limiting: {}%".format( rc.getMotorPowerLimit() ), cursor, size=textsize)
-                    cursor = (cursor[0],cursor[1]+lineHeight)
-                    showText(screen, "Left motor ch1 pulse len: {}/4096".format( rc.getPWMPulseLength(rc.motorsLeftChannelA) ), cursor, size=textsize)
-                    cursor = (cursor[0],cursor[1]+lineHeight)
-                    showText(screen, "Left motor ch2 pulse len: {}/4096".format( rc.getPWMPulseLength(rc.motorsLeftChannelB) ), cursor, size=textsize)
-                    cursor = (cursor[0],cursor[1]+lineHeight)
-                    showText(screen, "Right motor ch1 pulse len: {}/4096".format( rc.getPWMPulseLength(rc.motorsRightChannelA) ), cursor, size=textsize)
-                    cursor = (cursor[0],cursor[1]+lineHeight)
-                    showText(screen, "Right motor ch2 pulse len: {}/4096".format( rc.getPWMPulseLength(rc.motorsRightChannelB) ), cursor, size=textsize)
+                    showDebugData()
             elif mode == Mode.sensorsTest :
                 #Get sensor readings and display on screen
                 leftDist = Sensors.readDistance(1)
                 rightDist = Sensors.readDistance(2)
                 frontDist = Sensors.readDistance(3)
-                leftSource = (360,190)
-                leftEnd1 = (360 - leftDist/4,190-20)
-                leftEnd2 = (360 - leftDist/4,190+20)
-                rightSource = (440,190)
-                rightEnd1 = (440 + rightDist/4,190-20)
-                rightEnd2 = (440 + rightDist/4,190+20)
-                frontSource = (400,200)
-                frontEnd1 = (400-20,200 - frontDist/4)
-                frontEnd2 = (400+20,200 - frontDist/4)
-                setModeBackground()
-                rc.drawVirtualRobot(screen)
-                pygame.draw.polygon(screen, Colour.Purple.value, [leftSource,leftEnd1,leftEnd2])
-                pygame.draw.polygon(screen, Colour.Purple.value, [rightSource,rightEnd1,rightEnd2])
-                pygame.draw.polygon(screen, Colour.Purple.value, [frontSource,frontEnd1,frontEnd2])
-            
+                showSensorGraphics(leftDist, rightDist, frontDist)
+            elif mode == Mode.wallFollowing :
+                for a in range( autoCycles ):
+                    #Update steering and motors based on sensor readings
+                    print("Loop time: {:.2f}".format( time.perf_counter() - timeC ) )
+                    timeC = time.perf_counter()
+
+                    leftDist = Sensors.readDistance(1)
+                    rightDist = Sensors.readDistance(2)
+                    frontDist = Sensors.readDistance(3)
+                    print("Sensors read time: {:.2f}".format( time.perf_counter() - timeC ) )
+                    driveAuto(leftDist, rightDist, frontDist)
+                    if debugInfo > 0:
+                        showSensorGraphics(leftDist, rightDist, frontDist)
+                    if debugInfo == 1:
+                        #Display debugging info on screen relevent to mode
+                        showDebugData()
+                
             #Update led RGB matrix displays with next frame of any queued animation
             if frame > 2:
                 eyes.showNext()
@@ -551,9 +664,12 @@ def main():
                 #Re-render current (only needed for onscreen display, but no harm done calling for real displays)
                 eyes.reshow()
             pygame.display.flip()
+            #print("Trigger Events: {}".format( time.perf_counter() ) )
                 
-            # Trigger stick events and check for quit
+            #Trigger stick events and check for quit
             keepRunning = robotControl.controllerStatus() and not stopProgram
+            
+            #print("Events Completed: {}".format( time.perf_counter() ) )
     
     finally:
         #Clean up and turn off hardware (motors)
