@@ -722,9 +722,9 @@ def main():
                     if debugInfo == 1:
                         #Display debugging info on screen relevent to mode
                         showDebugData()
-                        #Break from inner auto cycle loop if front sensor distance below min
-                        if frontDist < minFrontDist:
-                            break
+                    #Break from inner auto cycle loop if front sensor distance below min
+                    if frontDist < minFrontDist:
+                        break
                         
             #Update led RGB matrix displays with next frame of any queued animation
             if frame > 2:
