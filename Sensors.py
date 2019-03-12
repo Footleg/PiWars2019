@@ -43,7 +43,7 @@ def readDistance(sensor):
     
     if sensorsOn :
         minDist = 10
-        maxDist = 1000
+        maxDist = 300
         change = random.randint(2,10)
         flip = random.randint(1,20)
         
