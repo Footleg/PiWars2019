@@ -84,8 +84,10 @@ def readDistance(sensor):
     #Activate sensor i2c channel
     plexer.channel( getSensorChannel(sensor) )
     
-    distance_in_mm = tofs[sensor-1].get_distance() # Grab the range in mm
-
+    for a in range(3):
+        distance_in_mm = tofs[sensor-1].get_distance() # Grab the range in mm
+        if distance_in_mm > 0:
+            break;
     return distance_in_mm
 
 
