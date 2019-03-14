@@ -59,10 +59,10 @@ rightBtn1Pressed = False
 
 #Hat editable parameters
 hatEditTracker = 0
-defaultPowerLevel = 30
-minSideDist = 50
-maxSideDist = 250
-minFrontDist = 100
+defaultPowerLevel = 20
+minSideDist = 100
+maxSideDist = 200
+minFrontDist = 120
 autoCycles = 1
 
     
@@ -590,6 +590,7 @@ def driveAuto(leftDist, rightDist, frontDist):
     
     distance = 5000
     direction = 1
+    maxAngle = 25
     if leftDist < maxSideDist and rightDist < maxSideDist:
         #Angle away from nearest side
         if leftDist > rightDist:
@@ -609,9 +610,9 @@ def driveAuto(leftDist, rightDist, frontDist):
     if distance > maxSideDist:
         angle = 0 
     else:
-        angle = direction * (40 - 40 * (distance - minSideDist) / (maxSideDist - minSideDist))
+        angle = direction * (maxAngle - maxAngle * (distance - minSideDist) / (maxSideDist - minSideDist))
         
-    print("Distance: {} Angle: {}".format(distance,angle) )
+    #print("Distance: {} Angle: {}".format(distance,angle) )
 
     setSteering(angle)
     
