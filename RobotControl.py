@@ -27,10 +27,10 @@ servoMinAngle = 40
 servoMaxAngle = 135
 
 #Globals to store positions servos have been set to
-servoPosFL = 0
-servoPosFR = 0
-servoPosBL = 0
-servoPosBR = 0
+servoPosFL = 80
+servoPosFR = 100
+servoPosBL = 110
+servoPosBR = 70
 
 showRobotGraphic = False
 
