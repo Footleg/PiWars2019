@@ -32,6 +32,10 @@ servoPosFR = 100
 servoPosBL = 110
 servoPosBR = 70
 
+#Globals to store power levels motors have been set to
+motorPowerL = 0
+motorPowerR = 0
+
 showRobotGraphic = False
 
 
@@ -93,6 +97,16 @@ def setSteeringRearRight(angle):
     #print("Rear Right angle: {}".format(angle) )
     
     
+def setSteering(angle):
+    """ Sets wheels to an angle to drive in a curve """
+    frontAngle = -angle + 90
+    rearAngle = angle + 90
+    setSteeringFrontLeft(frontAngle)
+    setSteeringFrontRight(frontAngle)
+    setSteeringRearLeft(rearAngle)
+    setSteeringRearRight(rearAngle)
+
+
 def spotTurnSteering(angle):
     """ Turns all wheels towards middle so robot turns on the spotTurnSteering.
         Takes angles from 0 - maxTurn (max based on servo max position limits)
@@ -152,11 +166,17 @@ def setMotorPower(channelA, channelB, power):
 
 
 def setLeftMotorPower(power):
+    global motorPowerL
+    
     setMotorPower(motorsLeftChannelA, motorsLeftChannelB, power)
+    motorPowerL = power
     
     
 def setRightMotorPower(power):
+    global motorPowerR
+    
     setMotorPower(motorsRightChannelA, motorsRightChannelB, power)
+    motorPowerR = power
     
     
 def stopAll():
