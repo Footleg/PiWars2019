@@ -2,6 +2,7 @@
 
 import pygame, random, time
 import RobotControl as rc
+import AutonomousDriving as ad
 from PygameController import RobotController
 from enum import Enum
 from os import system
@@ -58,12 +59,9 @@ rightBtn1Pressed = False
 #Hat editable parameters
 hatEditTracker = 0
 defaultPowerLevel = 20
-minSideDist = 100
-maxSideDist = 200
-minFrontDist = 120
 autoCycles = 1
-maxAngle = 25
-    
+
+
 def initStatus(status):
     """ Callback function which displays status during initialisation """
     if status == 0 :
@@ -138,7 +136,7 @@ def hatChangeHandler(valLR,valUD):
     """ Handler for HAT control on game controller
         Allows parameters to be updated
     """
-    global hatEditTracker, defaultPowerLevel, minSideDist, maxSideDist, minFrontDist, autoCycles, maxAngle
+    global hatEditTracker, defaultPowerLevel, autoCycles
     
     textsize = 30
     settingCount = 6
@@ -163,40 +161,28 @@ def hatChangeHandler(valLR,valUD):
         showText(screen, "Default Power Level: {}".format(defaultPowerLevel), (10,442), size=textsize)
     elif hatEditTracker == 2:
         #Update minimum side sensor distance
-        minSideDist += (10 * valLR)
-        if minSideDist < 10:
-            minSideDist = 10
-        elif minSideDist > maxSideDist - 10:
-            minSideDist = maxSideDist - 10
-        showText(screen, "Min. side sensor dist: {}".format(minSideDist), (10,442), size=textsize)     
+        ad.updateMinSideDist(10 * valLR)
+        showText(screen, "Min. side sensor dist: {}".format(ad.minSideDist), (10,442), size=textsize)     
     elif hatEditTracker == 3:
         #Update maximum side sensor distance
-        maxSideDist += (10 * valLR)
-        if maxSideDist < minSideDist + 10:
-            maxSideDist = minSideDist + 10
-        elif maxSideDist > 2000:
-            maxSideDist = 2000
-        showText(screen, "Max. side sensor dist: {}".format(maxSideDist), (10,442), size=textsize)     
+        ad.updateMaxSideDist(10 * valLR)
+        showText(screen, "Max. side sensor dist: {}".format(ad.maxSideDist), (10,442), size=textsize)     
     elif hatEditTracker == 4:
         #Update minimum front sensor distance
-        minFrontDist += (10 * valLR)
-        if minFrontDist < 10:
-            minFrontDist = 10
-        elif minFrontDist > 1000:
-            minFrontDist = 1000
-        showText(screen, "Min. front sensor dist: {}".format(minFrontDist), (10,442), size=textsize)     
+        ad.updateMinFrontDist(10 * valLR)
+        showText(screen, "Min. front sensor dist: {}".format(ad.minFrontDist), (10,442), size=textsize)     
     elif hatEditTracker == 5:
         #Update auto cycle length
         autoCycles += (5 * valLR)
         if autoCycles < 5:
             autoCycles = 5
+        elif autoCycles > 1000:
+            autoCycles = 1000
         showText(screen, "No. auto cycles before controller read: {}".format(autoCycles), (10,442), size=textsize)     
     elif hatEditTracker == 6:
-        #Update auto cycle length
-        maxAngle += (5 * valLR)
-        if maxAngle < 5:
-            maxAngle = 5
-        showText(screen, "Max auto steer angle: {}".format(maxAngle), (10,442), size=textsize)     
+        #Update max auto steering angle
+        ad.updateMaxSteeringAngle(5 * valLR)
+        showText(screen, "Max auto steer angle: {}".format(ad.maxSteeringAngle), (10,442), size=textsize)     
 
 
 def selectBtnHandler(state):
@@ -548,8 +534,6 @@ def setMode(newMode):
         elif mode == Mode.wallFollowing :
             Sensors.startAll()
             initDriving()
-            #Set power level over-ride for auto mode
-            #rc.setMotorPowerLimit(50)
             
 
 def initDriving():
@@ -558,49 +542,6 @@ def initDriving():
     rc.setSteeringStraight()
     #Initialise power limiting
     updatePowerLimiting()
-    
-
-def driveAuto(leftDist, rightDist, frontDist):
-    """ Update steering and motors based on sensor values """
-    global minSideDist, maxSideDist, minFrontDist
-
-    if frontDist < minFrontDist:
-        #Stop if closer than min front distance from obstacle
-        rc.setLeftMotorPower(0)
-        rc.setRightMotorPower(0)
-    elif rc.motorPowerL == 0:
-        #Start motors if nothing closer than min front distance from obstacle
-        #and motors are stopped
-        rc.setLeftMotorPower(100)
-        rc.setRightMotorPower(100)
-    
-    distance = 5000
-    direction = 1
-    
-    if leftDist < maxSideDist and rightDist < maxSideDist:
-        #Angle away from nearest side
-        if leftDist > rightDist:
-            distance = rightDist
-            direction = -1
-        elif leftDist < rightDist:
-            distance = leftDist
-    elif leftDist < maxSideDist:
-        distance = leftDist
-    elif rightDist < maxSideDist:
-        distance = rightDist
-        direction = -1
-        
-    if distance < minSideDist:
-        distance = minSideDist
-    
-    if distance > maxSideDist:
-        angle = 0 
-    else:
-        angle = direction * (maxAngle - maxAngle * (distance - minSideDist) / (maxSideDist - minSideDist))
-        
-    #print("Distance: {} Angle: {}".format(distance,angle) )
-
-    rc.setSteering(angle)
     
     
 def main():
@@ -703,14 +644,14 @@ def main():
                     rightDist = Sensors.readDistance(2)
                     frontDist = Sensors.readDistance(3)
                     #print("Sensors read time: {:.2f}".format( time.perf_counter() - timeC ) )
-                    driveAuto(leftDist, rightDist, frontDist)
+                    ad.driveAuto(leftDist, rightDist, frontDist)
                     if debugInfo > 0:
                         showSensorGraphics(leftDist, rightDist, frontDist)
                     if debugInfo == 1:
                         #Display debugging info on screen relevent to mode
                         showDebugData()
                     #Break from inner auto cycle loop if front sensor distance below min
-                    if frontDist < minFrontDist:
+                    if frontDist < ad.minFrontDist:
                         break
                         
             #Update led RGB matrix displays with next frame of any queued animation
