@@ -2,6 +2,7 @@
 
 import pygame, random, time
 import RobotControl as rc
+import AutonomousDriving as ad
 from PygameController import RobotController
 from enum import Enum
 from os import system
@@ -37,8 +38,6 @@ class Colour(Enum):
     
 #Declare globals
 mode = Mode.menu
-speedL = 0
-speedR = 0
 angle = 90
 screen = None
 stopProgram = False
@@ -60,12 +59,9 @@ rightBtn1Pressed = False
 #Hat editable parameters
 hatEditTracker = 0
 defaultPowerLevel = 20
-minSideDist = 100
-maxSideDist = 200
-minFrontDist = 120
 autoCycles = 1
 
-    
+
 def initStatus(status):
     """ Callback function which displays status during initialisation """
     if status == 0 :
@@ -80,7 +76,6 @@ def leftStickChangeHandler(valLR, valUD):
     """ Handler function for left analogue stick.
         Controls motor speed using Up/Down stick position
     """
-    global speedL, speedR
     
     if mode == Mode.manual:
         #Reset steering servos straight if angle is 90 in case we have been in spot steering mode
@@ -89,81 +84,68 @@ def leftStickChangeHandler(valLR, valUD):
             
         speedL = -100 * valUD
         speedR = speedL
-        setMotorSpeeds()
+        rc.setLeftMotorPower(speedL)
+        rc.setRightMotorPower(speedR)
 
 
 def rightStickChangeHandler(valLR, valUD):
     """ Handler function for right analogue stick.
         Controls steering using Left/Right stick position
     """
-    global angle, speedL, speedR
+    global angle
     
     if mode == Mode.manual:
         #Turn off motors if in spot turn mode and manual stick steering is activated
-        if speedL == -speedR:
-            speedL = 0
-            speedR = 0
-            setMotorSpeeds()
+        if rc.motorPowerL == -rc.motorPowerR:
+            rc.setLeftMotorPower(0)
+            rc.setRightMotorPower(0)
             
         angle = valLR * 40
-        setSteering(angle)
-
-
-def setSteering(angle):
-    frontAngle = -angle + 90
-    rearAngle = angle + 90
-    rc.setSteeringFrontLeft(frontAngle)
-    rc.setSteeringFrontRight(frontAngle)
-    rc.setSteeringRearLeft(rearAngle)
-    rc.setSteeringRearRight(rearAngle)
+        rc.setSteering(angle)
 
 
 def leftTriggerChangeHandler(value):
     """ Handler for left trigger.
         If not turning then controls spot turning.
     """
-    global speedL, speedR
     
     if mode == Mode.manual:
         if angle == 90:
             rc.spotTurnSteering(40)
             speedR = (value + 1) * 50
             speedL = -speedR
-            setMotorSpeeds()
+            rc.setLeftMotorPower(speedL)
+            rc.setRightMotorPower(speedR)
     
     
 def rightTriggerChangeHandler(value):
     """ Handler for right trigger.
         If not turning then controls spot turning.
     """
-    global speedL, speedR
     
     if mode == Mode.manual:
         if angle == 90:
             rc.spotTurnSteering(40)
             speedL = (value + 1) * 50
             speedR = -speedL
-            setMotorSpeeds()
-    
-
-def setMotorSpeeds():
-    rc.setLeftMotorPower(speedL)
-    rc.setRightMotorPower(speedR)
+            rc.setLeftMotorPower(speedL)
+            rc.setRightMotorPower(speedR)
     
 
 def hatChangeHandler(valLR,valUD):
     """ Handler for HAT control on game controller
         Allows parameters to be updated
     """
-    global hatEditTracker, defaultPowerLevel, minSideDist, maxSideDist, minFrontDist, autoCycles
+    global hatEditTracker, defaultPowerLevel, autoCycles
     
     textsize = 30
+    settingCount = 6
     
     if valUD != 0:
         hatEditTracker += valUD
         if hatEditTracker < 0:
-            hatEditTracker = 5
-        elif hatEditTracker > 5:
+            hatEditTracker = settingCount
+        elif hatEditTracker > settingCount:
             hatEditTracker = 0
     
     pygame.draw.rect(screen, Colour.Purple.value, pygame.Rect(10,440,400,30))
@@ -179,34 +161,28 @@ def hatChangeHandler(valLR,valUD):
         showText(screen, "Default Power Level: {}".format(defaultPowerLevel), (10,442), size=textsize)
     elif hatEditTracker == 2:
         #Update minimum side sensor distance
-        minSideDist += (10 * valLR)
-        if minSideDist < 10:
-            minSideDist = 10
-        elif minSideDist > maxSideDist - 10:
-            minSideDist = maxSideDist - 10
-        showText(screen, "Min. side sensor dist: {}".format(minSideDist), (10,442), size=textsize)     
+        ad.updateMinSideDist(10 * valLR)
+        showText(screen, "Min. side sensor dist: {}".format(ad.minSideDist), (10,442), size=textsize)     
     elif hatEditTracker == 3:
         #Update maximum side sensor distance
-        maxSideDist += (10 * valLR)
-        if maxSideDist < minSideDist + 10:
-            maxSideDist = minSideDist + 10
-        elif maxSideDist > 2000:
-            maxSideDist = 2000
-        showText(screen, "Max. side sensor dist: {}".format(maxSideDist), (10,442), size=textsize)     
+        ad.updateMaxSideDist(10 * valLR)
+        showText(screen, "Max. side sensor dist: {}".format(ad.maxSideDist), (10,442), size=textsize)     
     elif hatEditTracker == 4:
         #Update minimum front sensor distance
-        minFrontDist += (10 * valLR)
-        if minFrontDist < 10:
-            minFrontDist = 10
-        elif minFrontDist > 1000:
-            minFrontDist = 1000
-        showText(screen, "Min. front sensor dist: {}".format(minFrontDist), (10,442), size=textsize)     
+        ad.updateMinFrontDist(10 * valLR)
+        showText(screen, "Min. front sensor dist: {}".format(ad.minFrontDist), (10,442), size=textsize)     
     elif hatEditTracker == 5:
         #Update auto cycle length
         autoCycles += (5 * valLR)
         if autoCycles < 5:
             autoCycles = 5
+        elif autoCycles > 1000:
+            autoCycles = 1000
         showText(screen, "No. auto cycles before controller read: {}".format(autoCycles), (10,442), size=textsize)     
+    elif hatEditTracker == 6:
+        #Update max auto steering angle
+        ad.updateMaxSteeringAngle(5 * valLR)
+        showText(screen, "Max auto steer angle: {}".format(ad.maxSteeringAngle), (10,442), size=textsize)     
 
 
 def selectBtnHandler(state):
@@ -346,8 +322,9 @@ def updatePowerLimiting():
         
     rc.setMotorPowerLimit(powerLimit)
     
-    #Update motor speeds with new speed level
-    setMotorSpeeds()
+    #Update motor speeds for new power limit level
+    rc.setLeftMotorPower(rc.motorPowerL)
+    rc.setRightMotorPower(rc.motorPowerR)
 
     
 def showImage(screen,filename, position = [0,0]):
@@ -534,7 +511,7 @@ def getMenuBtn(pos):
 
 def setMode(newMode):
     """ Sets up robot for specified mode. """
-    global mode, speedL, speedR
+    global mode
     
     #Stop hardware
     rc.stopAll()
@@ -555,66 +532,17 @@ def setMode(newMode):
         elif mode == Mode.sensorsTest :
             Sensors.startAll()
         elif mode == Mode.wallFollowing :
+            ad.targetWallDistance = 0 #Reset
             Sensors.startAll()
             initDriving()
-            #Set power level over-ride for auto mode
-            #rc.setMotorPowerLimit(50)
             
 
 def initDriving():
     """ Initialise robot for driving modes """
     #Reset steering to straight ahead (powers up servos)
-    rc.setSteeringFrontLeft(90)
-    rc.setSteeringFrontRight(90)
-    rc.setSteeringRearLeft(90)
-    rc.setSteeringRearRight(90)
+    rc.setSteeringStraight()
     #Initialise power limiting
     updatePowerLimiting()
-    
-
-def driveAuto(leftDist, rightDist, frontDist):
-    """ Update steering and motors based on sensor values """
-    global speedL, speedR, minSideDist, maxSideDist, minFrontDist
-
-    if frontDist < minFrontDist:
-        #Stop if closer than min front distance from obstacle
-        speedL = 0
-        speedR = 0
-        setMotorSpeeds()
-    elif speedL == 0:
-        #Start motors if nothing closer than min front distance from obstacle
-        #and motors are stopped
-        speedL = 100
-        speedR = 100
-        setMotorSpeeds()
-    
-    distance = 5000
-    direction = 1
-    maxAngle = 25
-    if leftDist < maxSideDist and rightDist < maxSideDist:
-        #Angle away from nearest side
-        if leftDist > rightDist:
-            distance = rightDist
-            direction = -1
-        elif leftDist < rightDist:
-            distance = leftDist
-    elif leftDist < maxSideDist:
-        distance = leftDist
-    elif rightDist < maxSideDist:
-        distance = rightDist
-        direction = -1
-        
-    if distance < minSideDist:
-        distance = minSideDist
-    
-    if distance > maxSideDist:
-        angle = 0 
-    else:
-        angle = direction * (maxAngle - maxAngle * (distance - minSideDist) / (maxSideDist - minSideDist))
-        
-    #print("Distance: {} Angle: {}".format(distance,angle) )
-
-    setSteering(angle)
     
     
 def main():
@@ -717,14 +645,14 @@ def main():
                     rightDist = Sensors.readDistance(2)
                     frontDist = Sensors.readDistance(3)
                     #print("Sensors read time: {:.2f}".format( time.perf_counter() - timeC ) )
-                    driveAuto(leftDist, rightDist, frontDist)
+                    ad.wallFollow(leftDist, rightDist, frontDist)
                     if debugInfo > 0:
                         showSensorGraphics(leftDist, rightDist, frontDist)
                     if debugInfo == 1:
                         #Display debugging info on screen relevent to mode
                         showDebugData()
                     #Break from inner auto cycle loop if front sensor distance below min
-                    if frontDist < minFrontDist:
+                    if frontDist < ad.minFrontDist:
                         break
                         
             #Update led RGB matrix displays with next frame of any queued animation
