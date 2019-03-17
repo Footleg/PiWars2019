@@ -532,6 +532,7 @@ def setMode(newMode):
         elif mode == Mode.sensorsTest :
             Sensors.startAll()
         elif mode == Mode.wallFollowing :
+            ad.targetWallDistance = 0 #Reset
             Sensors.startAll()
             initDriving()
             
@@ -644,7 +645,7 @@ def main():
                     rightDist = Sensors.readDistance(2)
                     frontDist = Sensors.readDistance(3)
                     #print("Sensors read time: {:.2f}".format( time.perf_counter() - timeC ) )
-                    ad.driveAuto(leftDist, rightDist, frontDist)
+                    ad.wallFollow(leftDist, rightDist, frontDist)
                     if debugInfo > 0:
                         showSensorGraphics(leftDist, rightDist, frontDist)
                     if debugInfo == 1:

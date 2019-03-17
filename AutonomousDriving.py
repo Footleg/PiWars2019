@@ -6,7 +6,8 @@ minSideDist = 100
 maxSideDist = 200
 minFrontDist = 120
 maxSteeringAngle = 25
-
+lastWallDistance = 0
+targetWallDistance = 0
 
 def updateMinSideDist(increment):
     """ Updates the value of minSideDist by the amount 'increment'.
@@ -115,3 +116,72 @@ def driveAuto(leftDist, rightDist, frontDist):
     #print("Distance: {} Angle: {}".format(distance,angle) )
 
     rc.setSteering(angle)
+
+
+def setMotorPower(frontDist):
+    """ Sets motors to run if front sensor is not measuring obstacle ahead.
+    """
+    if frontDist < minFrontDist:
+        #Stop if closer than min front distance from obstacle
+        rc.setLeftMotorPower(0)
+        rc.setRightMotorPower(0)
+    elif rc.motorPowerL == 0:
+        #Start motors if nothing closer than min front distance from obstacle
+        #and motors are stopped
+        rc.setLeftMotorPower(100)
+        rc.setRightMotorPower(100)
+
+
+def wallFollow(leftDist, rightDist, frontDist, left = False):
+    """ Follow left or right wall.
+        Steering attempts to keep robot the same distance from the wall as starting distance.
+    """
+    global lastWallDistance, targetWallDistance
+    
+    setMotorPower(frontDist)
+    
+    if left == True:
+        distance = leftDist
+    else:
+        distance = rightDist
+        
+    if targetWallDistance == 0:
+        #Just set target distance
+        targetWallDistance = distance
+        lastWallDistance = distance
+    elif lastWallDistance > 0:
+        #Have two readings to compare, so determine if increasing or decreasing
+        trendDist = lastWallDistance - distance
+        
+        #Determine how close to target
+        targetdiff = targetWallDistance - distance 
+        
+        #Set steering angle based on whether moving away or nearer to wall
+        maxTrendDistance = 10
+        if trendDist > maxTrendDistance:
+            angle = maxSteeringAngle
+        elif trendDist < -maxTrendDistance:
+            angle = -maxSteeringAngle
+        else:
+            angle = int(maxSteeringAngle * trendDist / maxTrendDistance)
+        
+        #Factor in difference between target distance and measured distance
+        maxSteerDistance = 200
+        maxTargetFactor = 15
+        if targetdiff > maxSteerDistance:
+            addn = maxTargetFactor
+        elif targetdiff < -maxSteerDistance:
+            addn = -maxTargetFactor
+        else:
+            addn = int(maxTargetFactor * targetdiff / maxSteerDistance)
+            
+        print("Target {}; Dist {}; Trend: {}; TrdCmp: {}; TrgCmp {}".format(targetWallDistance,distance,trendDist,angle,addn))
+    
+        angle += addn
+        
+        rc.setSteering(-angle)
+        
+        #Remember distance to compare with next time
+        lastWallDistance = distance
+        
+        
