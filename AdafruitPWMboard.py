@@ -75,7 +75,13 @@ def setPercentageOn(channel, percent):
     #print("Setting servo {} pulse to {}".format(channel,pulse) )
     pwm.setPWM(channel, 0, pulse)
     channelPulseLengths[channel] = pulse
-      
+ 
+    
+def setConstantOn(channel):
+    """ Sets a channel to completely on (for logical high).
+    """
+    pwm.setPWM(channel, 0, 4095)
+    
     
 def allOff():
     """ Sets all outputs off """
