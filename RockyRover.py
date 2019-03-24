@@ -3,6 +3,7 @@
 import pygame, random, time
 import RobotControl as rc
 import AutonomousDriving as ad
+import dartShooter as ds
 from PygameController import RobotController
 from enum import Enum
 from os import system
@@ -227,6 +228,53 @@ def rightBtn1Handler(state):
     rightBtn1Pressed = state
     updatePowerLimiting()
     
+    
+def triangleBtnHandler(state):
+    """ Handler for Triangle button on game controller """
+    if state == 1 :
+        armShooter()
+    
+    
+def squareBtnHandler(state):
+    """ Handler for Square button on game controller """
+    if state == 1 :
+        disarmShooter()
+    
+    
+def crossXBtnHandler(state):
+    """ Handler for Cross button on game controller 
+        Trigger dart firing mechanism if active,
+        else reset armed flag
+    """
+    if state == 1 :
+        if ds.motorRunning:
+            fireDart()
+        else:
+            ds.armed = False
+    
+    
+def armShooter():
+    """ Start up shooter module (in manual mode only)
+    """
+    if mode == Mode.manual:
+        ds.laserOn()
+        eyes.showNow(ledMatrixDisplays.red_cross)
+        ds.armESC()
+        eyes.showNow(ledMatrixDisplays.target)
+        ds.motorOn()
+
+    
+def disarmShooter():
+    """ Shut down shooter module """
+    ds.motorOff()
+    ds.laserOff()
+    eyes.addFrame(ledMatrixDisplays.eye_open)
+    
+    
+def fireDart():
+    """ Trigger shooter """
+    ds.fire()
+
     
 def mouseDownHandler(pos, btn):
     """ Handler function for mouse down.
@@ -515,6 +563,7 @@ def setMode(newMode):
     
     #Stop hardware
     rc.stopAll()
+    disarmShooter()
     
     #Update global mode
     mode = newMode
@@ -546,7 +595,7 @@ def initDriving():
     
     
 def main():
-    global screen, debugInfo, autoCycles
+    global screen, debugInfo, autoCycles, eyes
     
     virtual = True #Tracks whether running on real robot or digital twin virtual robot simulation
     
@@ -569,6 +618,9 @@ def main():
             homeBtnChanged = homeBtnHandler,
             leftBtn1Changed = leftBtn1Handler, 
             rightBtn1Changed = rightBtn1Handler, 
+            triangleBtnChanged = triangleBtnHandler,
+            squareBtnChanged = squareBtnHandler,
+            crossXBtnChanged = crossXBtnHandler,
             mouseDown = mouseDownHandler)
         
         if robotControl.initialised :

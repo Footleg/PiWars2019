@@ -4,27 +4,43 @@ import AdafruitPWMboard as pwmb
 import time
 
 #Define the channels which the servos are connected to
-laserChannel = 4
-triggerChannel = 6
-escChannel = 5
+laserChannel = 5
+triggerChannel = 7
+escChannel = 6
 
 maxMotorPower = int( 180 * 0.6 ) #Above 60% max power the  rubber band comes off motor
-
 triggerOpenPos = 85
-
 triggerClosedPos = 160
+    
+armed = False
+motorRunning = False
+
+def armESC():
+    """ Arms the dart shooter esc """
+    global armed
+    
+    if armed == False:
+        pwmb.setServoPosition(escChannel, 0)
+        time.sleep(2)
+        armed = True
 
 
 def motorOn():
     """ Turns on the dart shooter motor by ramping up power """
-    for angle in range(0, maxMotorPower):
+    global motorRunning
+    
+    for angle in range(40, maxMotorPower):
         pwmb.setServoPosition(escChannel, angle) 
-        time.sleep(0.1)
-
+        time.sleep(0.05)
+    motorRunning = True
+    
 
 def motorOff():
     """ Turns off the dart shooter motor """
+    global motorRunning
+
     pwmb.setPercentageOn(escChannel, 0) #Off
+    motorRunning = False
     
     
 def laserOn():
@@ -53,8 +69,7 @@ def main():
     try:
         
         print("Setting min pulse to arm (for 2 seconds)")
-        pwmb.setServoPosition(escChannel, 0)
-        time.sleep(2)
+        armESC()
         
         print("Laser on")
         laserOn()
@@ -63,10 +78,10 @@ def main():
         motorOn()
         
         fire()
-        time.sleep(5)
-        fire()
-        time.sleep(5)
-        fire()
+        #time.sleep(5)
+        #fire()
+        #time.sleep(5)
+        #fire()
         time.sleep(1)
 
     finally:
