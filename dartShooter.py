@@ -4,9 +4,9 @@ import AdafruitPWMboard as pwmb
 import time
 
 #Define the channels which the servos are connected to
-laserChannel = 13
-triggerChannel = 14
-escChannel = 15
+laserChannel = 4
+triggerChannel = 6
+escChannel = 5
 
 maxMotorPower = int( 180 * 0.6 ) #Above 60% max power the  rubber band comes off motor
 
@@ -67,8 +67,6 @@ def main():
         fire()
         time.sleep(5)
         fire()
-        time.sleep(5)
-        laserOn()
         time.sleep(1)
 
     finally:
