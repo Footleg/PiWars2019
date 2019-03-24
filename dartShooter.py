@@ -13,8 +13,8 @@ maxMotorPower = int( 180 * 0.6 ) #Above 60% max power the  rubber band comes off
 
 def motorOn():
     """ Turns on the nerf shooter motor by ramping up power """
-    for pulse in range(0, maxMotorPower):
-        pwmb.setServoPosition(escChannel, pulse) 
+    for angle in range(0, maxMotorPower):
+        pwmb.setServoPosition(escChannel, angle) 
         time.sleep(0.1)
 
 
@@ -31,6 +31,15 @@ def laserOn():
 def laserOff():
     """ Turns off the nerf shooter motor """
     pwmb.setPercentageOn(laserChannel, 0) #Off
+
+
+def fire():
+    """ Pushes dart onto flywheel """
+    for angle in range(90, 180, 15):
+        pwmb.setServoPosition(triggerChannel, angle) 
+        time.sleep(0.05)
+    time.sleep(0.5)
+    pwmb.setServoPosition(triggerChannel, 90)
     
     
 def main():
@@ -48,6 +57,13 @@ def main():
         print("Ramping up")
         motorOn()
         
+        fire()
+        time.sleep(5)
+        fire()
+        time.sleep(5)
+        fire()
+        time.sleep(5)
+        fire()
         time.sleep(1)
 
     finally:
