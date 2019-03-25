@@ -54,7 +54,7 @@ class LEDMatrixDisplays:
                 for x in range(0,5):
                     i = 5*y+4-x
                     display.set_pixel(x,y,pattern[i][0],pattern[i][1],pattern[i][2])
-
+        
         display.show()
 
 
@@ -84,8 +84,21 @@ class LEDMatrixDisplays:
             self.showPattern(self.d2,pattern)
         else:
             self.d2.show()
-            
-            
+    
+    
+    def showNow(self,pattern,display=0):
+        """ Show pattern immediately on display(s)
+            display 1 = left display only
+            display 2 = right display only
+            Any other value = both displays
+        """
+        if display != 2:
+            self.showPattern(self.d1,pattern,2)
+        
+        if display != 1:
+            self.showPattern(self.d2,pattern)
+        
+        
     def blink(self):
         """ Queue up blink animation frames for both eyes """
         self.addFrame(eye_lid1)
@@ -100,7 +113,7 @@ class LEDMatrixDisplays:
 o = (0,0,0)
 b = (0,0,200)
 p = (255,153,204)
-g = (128,255,0)
+g = (0,255,0)
 m = (255,0,127)
 w = (255,255,255)
 r = (255,0,0)
@@ -111,6 +124,38 @@ w,w,b,w,w,
 w,b,b,b,w,
 w,w,b,w,w,
 o,w,w,w,o
+]
+
+eye_left = [
+o,w,w,o,o,
+w,b,w,w,o,
+w,b,b,w,o,
+w,b,w,w,o,
+o,w,w,o,o
+]
+
+eye_right = [
+o,o,w,w,o,
+o,w,b,w,w,
+o,w,b,b,w,
+o,w,b,w,w,
+o,o,w,w,o
+]
+
+eye_downright = [
+o,o,o,o,o,
+o,o,w,w,o,
+o,w,b,b,w,
+o,w,b,b,w,
+o,o,w,w,o
+]
+
+eye_downleft = [
+o,o,o,o,o,
+o,w,w,o,o,
+w,b,b,w,o,
+w,b,b,w,o,
+o,w,w,o,o
 ]
 
 eye_lid1 = [
@@ -153,3 +198,18 @@ p,p,g,p,p,
 p,g,g,g,p
 ]
 
+target = [
+o,g,g,g,o,
+g,r,r,r,g,
+g,r,w,r,g,
+g,r,r,r,g,
+o,g,g,g,o
+]
+
+red_cross = [
+o,r,r,r,o,
+r,r,r,r,r,
+r,r,r,r,r,
+r,r,r,r,r,
+o,r,r,r,o
+]

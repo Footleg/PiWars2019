@@ -3,6 +3,7 @@
 import pygame, random, time
 import RobotControl as rc
 import AutonomousDriving as ad
+import dartShooter as ds
 from PygameController import RobotController
 from enum import Enum
 from os import system
@@ -58,7 +59,7 @@ rightBtn1Pressed = False
 
 #Hat editable parameters
 hatEditTracker = 0
-defaultPowerLevel = 20
+defaultPowerLevel = 30
 autoCycles = 1
 
 
@@ -80,7 +81,7 @@ def leftStickChangeHandler(valLR, valUD):
     if mode == Mode.manual:
         #Reset steering servos straight if angle is 90 in case we have been in spot steering mode
         if angle == 90:
-            rc.setSteeringStraight()
+            setSteering(0)
             
         speedL = -100 * valUD
         speedR = speedL
@@ -101,7 +102,7 @@ def rightStickChangeHandler(valLR, valUD):
             rc.setRightMotorPower(0)
             
         angle = valLR * 40
-        rc.setSteering(angle)
+        setSteering(angle)
 
 
 def leftTriggerChangeHandler(value):
@@ -116,6 +117,8 @@ def leftTriggerChangeHandler(value):
             speedL = -speedR
             rc.setLeftMotorPower(speedL)
             rc.setRightMotorPower(speedR)
+            eyes.addFrame(ledMatrixDisplays.eye_downright,1)
+            eyes.addFrame(ledMatrixDisplays.eye_downrleft,2)
     
     
 def rightTriggerChangeHandler(value):
@@ -130,6 +133,8 @@ def rightTriggerChangeHandler(value):
             speedR = -speedL
             rc.setLeftMotorPower(speedL)
             rc.setRightMotorPower(speedR)
+            eyes.addFrame(ledMatrixDisplays.eye_downright,1)
+            eyes.addFrame(ledMatrixDisplays.eye_downrleft,2)
     
 
 def hatChangeHandler(valLR,valUD):
@@ -227,6 +232,53 @@ def rightBtn1Handler(state):
     rightBtn1Pressed = state
     updatePowerLimiting()
     
+    
+def triangleBtnHandler(state):
+    """ Handler for Triangle button on game controller """
+    if state == 1 :
+        armShooter()
+    
+    
+def squareBtnHandler(state):
+    """ Handler for Square button on game controller """
+    if state == 1 :
+        disarmShooter()
+    
+    
+def crossXBtnHandler(state):
+    """ Handler for Cross button on game controller 
+        Trigger dart firing mechanism if active,
+        else reset armed flag
+    """
+    if state == 1 :
+        if ds.motorRunning:
+            fireDart()
+        else:
+            ds.armed = False
+    
+    
+def armShooter():
+    """ Start up shooter module (in manual mode only)
+    """
+    if mode == Mode.manual:
+        ds.laserOn()
+        eyes.showNow(ledMatrixDisplays.red_cross)
+        ds.armESC()
+        eyes.showNow(ledMatrixDisplays.target)
+        ds.motorOn()
+
+    
+def disarmShooter():
+    """ Shut down shooter module """
+    ds.motorOff()
+    ds.laserOff()
+    eyes.addFrame(ledMatrixDisplays.eye_open)
+    
+    
+def fireDart():
+    """ Trigger shooter """
+    ds.fire()
+
     
 def mouseDownHandler(pos, btn):
     """ Handler function for mouse down.
@@ -515,6 +567,7 @@ def setMode(newMode):
     
     #Stop hardware
     rc.stopAll()
+    disarmShooter() #This also restores led matrices to eye_open pattern
     
     #Update global mode
     mode = newMode
@@ -540,13 +593,26 @@ def setMode(newMode):
 def initDriving():
     """ Initialise robot for driving modes """
     #Reset steering to straight ahead (powers up servos)
-    rc.setSteeringStraight()
+    setSteering(0)
     #Initialise power limiting
     updatePowerLimiting()
-    
-    
+
+
+def setSteering(angle):
+    """ Local method to update eyes before passing steering to robot control module """
+    rc.setSteering(angle)
+    print(angle)
+    #Set eyes based in steering
+    if angle < -10:
+        eyes.addFrame(ledMatrixDisplays.eye_left)
+    elif angle > 10:
+        eyes.addFrame(ledMatrixDisplays.eye_downright)
+    else:
+        eyes.addFrame(ledMatrixDisplays.eye_open)
+
+
 def main():
-    global screen, debugInfo, autoCycles
+    global screen, debugInfo, autoCycles, eyes
     
     virtual = True #Tracks whether running on real robot or digital twin virtual robot simulation
     
@@ -569,6 +635,9 @@ def main():
             homeBtnChanged = homeBtnHandler,
             leftBtn1Changed = leftBtn1Handler, 
             rightBtn1Changed = rightBtn1Handler, 
+            triangleBtnChanged = triangleBtnHandler,
+            squareBtnChanged = squareBtnHandler,
+            crossXBtnChanged = crossXBtnHandler,
             mouseDown = mouseDownHandler)
         
         if robotControl.initialised :
@@ -659,8 +728,8 @@ def main():
             if frame > 2:
                 eyes.showNext()
                 frame = 0
-            else:
-                #Re-render current (only needed for onscreen display, but no harm done calling for real displays)
+            elif virtual:
+                #Re-render current image on screen (only needed for virtual displays)
                 eyes.reshow()
             pygame.display.flip()
             #print("Trigger Events: {}".format( time.perf_counter() ) )

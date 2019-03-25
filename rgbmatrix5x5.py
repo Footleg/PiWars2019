@@ -46,7 +46,10 @@ class RGBMatrix5x5():
                 for y in range(5):
                     idx = y*5+4-x
                     pygame.draw.circle(self.SCREEN, self.LEDS[idx],(x*20+marginX+LED_DIA,y*20+20+LED_DIA),LED_DIA)
-    
+        
+        pygame.display.flip()
+        
+        
     def clear(self):
         o = [0,0,0]
         self.LEDS = [
