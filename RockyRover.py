@@ -59,7 +59,7 @@ rightBtn1Pressed = False
 
 #Hat editable parameters
 hatEditTracker = 0
-defaultPowerLevel = 20
+defaultPowerLevel = 30
 autoCycles = 1
 
 
@@ -81,7 +81,7 @@ def leftStickChangeHandler(valLR, valUD):
     if mode == Mode.manual:
         #Reset steering servos straight if angle is 90 in case we have been in spot steering mode
         if angle == 90:
-            rc.setSteeringStraight()
+            setSteering(0)
             
         speedL = -100 * valUD
         speedR = speedL
@@ -102,7 +102,7 @@ def rightStickChangeHandler(valLR, valUD):
             rc.setRightMotorPower(0)
             
         angle = valLR * 40
-        rc.setSteering(angle)
+        setSteering(angle)
 
 
 def leftTriggerChangeHandler(value):
@@ -117,6 +117,8 @@ def leftTriggerChangeHandler(value):
             speedL = -speedR
             rc.setLeftMotorPower(speedL)
             rc.setRightMotorPower(speedR)
+            eyes.addFrame(ledMatrixDisplays.eye_downright,1)
+            eyes.addFrame(ledMatrixDisplays.eye_downleft,2)
     
     
 def rightTriggerChangeHandler(value):
@@ -131,6 +133,8 @@ def rightTriggerChangeHandler(value):
             speedR = -speedL
             rc.setLeftMotorPower(speedL)
             rc.setRightMotorPower(speedR)
+            eyes.addFrame(ledMatrixDisplays.eye_downright,1)
+            eyes.addFrame(ledMatrixDisplays.eye_downleft,2)
     
 
 def hatChangeHandler(valLR,valUD):
@@ -563,7 +567,7 @@ def setMode(newMode):
     
     #Stop hardware
     rc.stopAll()
-    disarmShooter()
+    disarmShooter() #This also restores led matrices to eye_open pattern
     
     #Update global mode
     mode = newMode
@@ -589,11 +593,24 @@ def setMode(newMode):
 def initDriving():
     """ Initialise robot for driving modes """
     #Reset steering to straight ahead (powers up servos)
-    rc.setSteeringStraight()
+    setSteering(0)
     #Initialise power limiting
     updatePowerLimiting()
-    
-    
+
+
+def setSteering(angle):
+    """ Local method to update eyes before passing steering to robot control module """
+    rc.setSteering(angle)
+    print(angle)
+    #Set eyes based in steering
+    if angle < -10:
+        eyes.addFrame(ledMatrixDisplays.eye_downleft)
+    elif angle > 10:
+        eyes.addFrame(ledMatrixDisplays.eye_downright)
+    else:
+        eyes.addFrame(ledMatrixDisplays.eye_open)
+
+
 def main():
     global screen, debugInfo, autoCycles, eyes
     
@@ -711,8 +728,8 @@ def main():
             if frame > 2:
                 eyes.showNext()
                 frame = 0
-            else:
-                #Re-render current (only needed for onscreen display, but no harm done calling for real displays)
+            elif virtual:
+                #Re-render current image on screen (only needed for virtual displays)
                 eyes.reshow()
             pygame.display.flip()
             #print("Trigger Events: {}".format( time.perf_counter() ) )

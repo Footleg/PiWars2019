@@ -88,14 +88,14 @@ class LEDMatrixDisplays:
     
     def showNow(self,pattern,display=0):
         """ Show pattern immediately on display(s)
-            display == 0 Show on both
-            display == 1 Show on left
-            display == 2 Show on right
+            display 1 = left display only
+            display 2 = right display only
+            Any other value = both displays
         """
-        if 0 <= display <= 1:
+        if display != 2:
             self.showPattern(self.d1,pattern,2)
         
-        if display == 0 or display == 2:
+        if display != 1:
             self.showPattern(self.d2,pattern)
         
         
@@ -124,6 +124,38 @@ w,w,b,w,w,
 w,b,b,b,w,
 w,w,b,w,w,
 o,w,w,w,o
+]
+
+eye_left = [
+o,w,w,o,o,
+w,b,w,w,o,
+w,b,b,w,o,
+w,b,w,w,o,
+o,w,w,o,o
+]
+
+eye_right = [
+o,o,w,w,o,
+o,w,b,w,w,
+o,w,b,b,w,
+o,w,b,w,w,
+o,o,w,w,o
+]
+
+eye_downright = [
+o,o,o,o,o,
+o,o,w,w,o,
+o,w,b,b,w,
+o,w,b,b,w,
+o,o,w,w,o
+]
+
+eye_downleft = [
+o,o,o,o,o,
+o,w,w,o,o,
+w,b,b,w,o,
+w,b,b,w,o,
+o,w,w,o,o
 ]
 
 eye_lid1 = [
