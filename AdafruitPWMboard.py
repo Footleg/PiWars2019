@@ -11,6 +11,7 @@ servoMin = 105  #105 Min pulse length (out of 4096)
 servoMax = 475  #500 Max pulse length (out of 4096)
 servoRange = 180 #Rotation range in degrees of the servos being used
 motorPowerLimiting = 50 #Default limits motors to 50 power
+maxPulseLength = 4095 #Length of an always on pulse for the pwm board
 channelPulseLengths = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0] #Store pulse lengths sent to each channel (for debug info)
 
 # Initialise the PWM device using the default address
@@ -59,9 +60,8 @@ def setPercentageOn(channel, percent):
     """
     global channelPulseLengths
     
-    #Fully on pulse length is 4096.
-    #Scale this down using percentage power limiting global variable value
-    maxPulse = 4096 * motorPowerLimiting / 100
+    #Scale down fully on pulse using percentage power limiting global variable value
+    maxPulse = maxPulseLength * motorPowerLimiting / 100
     
     #Convert percentage to pulse length
     pulse = int( percent * maxPulse / 100 )
@@ -80,7 +80,8 @@ def setPercentageOn(channel, percent):
 def setConstantOn(channel):
     """ Sets a channel to completely on (for logical high).
     """
-    pwm.setPWM(channel, 0, 4095)
+    pwm.setPWM(channel, 0, maxPulseLength)
+    channelPulseLengths[channel] = maxPulseLength
     
     
 def allOff():
