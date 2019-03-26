@@ -118,7 +118,7 @@ def leftTriggerChangeHandler(value):
             rc.setLeftMotorPower(speedL)
             rc.setRightMotorPower(speedR)
             eyes.addFrame(ledMatrixDisplays.eye_downright,1)
-            eyes.addFrame(ledMatrixDisplays.eye_downrleft,2)
+            eyes.addFrame(ledMatrixDisplays.eye_downleft,2)
     
     
 def rightTriggerChangeHandler(value):
@@ -134,7 +134,7 @@ def rightTriggerChangeHandler(value):
             rc.setLeftMotorPower(speedL)
             rc.setRightMotorPower(speedR)
             eyes.addFrame(ledMatrixDisplays.eye_downright,1)
-            eyes.addFrame(ledMatrixDisplays.eye_downrleft,2)
+            eyes.addFrame(ledMatrixDisplays.eye_downleft,2)
     
 
 def hatChangeHandler(valLR,valUD):
@@ -604,7 +604,7 @@ def setSteering(angle):
     print(angle)
     #Set eyes based in steering
     if angle < -10:
-        eyes.addFrame(ledMatrixDisplays.eye_left)
+        eyes.addFrame(ledMatrixDisplays.eye_downleft)
     elif angle > 10:
         eyes.addFrame(ledMatrixDisplays.eye_downright)
     else:
