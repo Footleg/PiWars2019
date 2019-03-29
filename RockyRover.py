@@ -144,7 +144,7 @@ def hatChangeHandler(valLR,valUD):
     global hatEditTracker, defaultPowerLevel, autoCycles
     
     textsize = 30
-    settingCount = 6
+    settingCount = 9
     
     if valUD != 0:
         hatEditTracker += valUD
@@ -188,6 +188,18 @@ def hatChangeHandler(valLR,valUD):
         #Update max auto steering angle
         ad.updateMaxSteeringAngle(5 * valLR)
         showText(screen, "Max auto steer angle: {}".format(ad.maxSteeringAngle), (10,442), size=textsize)     
+    elif hatEditTracker == 7:
+        #Update PID tuning Pk
+        ad.updatePk(0.01 * valLR)
+        showText(screen, "PID Pk: {}".format(ad.Pk), (10,442), size=textsize)     
+    elif hatEditTracker == 8:
+        #Update PID tuning Ik
+        ad.updateIk(0.01 * valLR)
+        showText(screen, "PID Ik: {}".format(ad.Ik), (10,442), size=textsize)     
+    elif hatEditTracker == 9:
+        #Update PID tuning Dk
+        ad.updateDk(0.01 * valLR)
+        showText(screen, "PID Dk: {}".format(ad.Dk), (10,442), size=textsize)     
 
 
 def selectBtnHandler(state):

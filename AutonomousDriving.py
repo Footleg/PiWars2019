@@ -9,7 +9,47 @@ minFrontDist = 120
 maxSteeringAngle = 25
 lastWallDistance = 0
 targetWallDistance = 0
+Pk = 0.2
+Ik = 0.0
+Dk = 0.0
 
+
+def updatePk(increment):
+    """ Updates the value of Pk by the amount 'increment'.
+        Limits value to a minimum of zero
+    """
+    global Pk
+    
+    Pk += increment
+    
+    if Pk < 0:
+        Pk = 0
+
+
+def updateIk(increment):
+    """ Updates the value of Ik by the amount 'increment'.
+        Limits value to a minimum of zero
+    """
+    global Ik
+    
+    Ik += increment
+    
+    if Ik < 0:
+        Ik = 0
+        
+        
+def updateDk(increment):
+    """ Updates the value of Dk by the amount 'increment'.
+        Limits value to a minimum of zero
+    """
+    global Dk
+    
+    Dk += increment
+    
+    if Dk < 0:
+        Dk = 0
+        
+        
 def updateMinSideDist(increment):
     """ Updates the value of minSideDist by the amount 'increment'.
         Limits value to between a minimum allowed value and less
@@ -76,13 +116,13 @@ def updateMaxSteeringAngle(increment):
         maxSteeringAngle = 50
     
     
-def initialisePID(P = 0.2,  I = 0.0, D = 0.0):
+def initialisePID(setPoint=0.0):
     """ Initialise PID controller """
     global pid
     
-    pid = PID.PID(P, I, D)
-
-    pid.SetPoint=0.0
+    pid = PID.PID(Pk, Ik, Dk)
+    
+    pid.SetPoint=setPoint
     pid.setSampleTime(0.01)
     
 
@@ -99,7 +139,7 @@ def wallMidPointPID(leftDist, rightDist, frontDist):
 
     pid.update(ratio)
     output = pid.output
-    angle = maxSteeringAngle * output * 5
+    angle = maxSteeringAngle * output * 2
     
     print("PID ratio: {}, output: {}, angle: {}".format(ratio,output,angle) )
     rc.setSteering(angle)
