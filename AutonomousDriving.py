@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import RobotControl as rc
+import PID
 
 minSideDist = 100
 maxSideDist = 200
@@ -74,47 +75,33 @@ def updateMaxSteeringAngle(increment):
     elif maxSteeringAngle > 50:
         maxSteeringAngle = 50
     
-
-def driveAuto(leftDist, rightDist, frontDist):
-    """ Update steering and motors based on sensor values """
-    global minSideDist, maxSideDist, minFrontDist
-
-    if frontDist < minFrontDist:
-        #Stop if closer than min front distance from obstacle
-        rc.setLeftMotorPower(0)
-        rc.setRightMotorPower(0)
-    elif rc.motorPowerL == 0:
-        #Start motors if nothing closer than min front distance from obstacle
-        #and motors are stopped
-        rc.setLeftMotorPower(100)
-        rc.setRightMotorPower(100)
     
-    distance = 5000
-    direction = 1
+def initialisePID(P = 0.2,  I = 0.0, D = 0.0):
+    """ Initialise PID controller """
+    global pid
     
-    if leftDist < maxSideDist and rightDist < maxSideDist:
-        #Angle away from nearest side
-        if leftDist > rightDist:
-            distance = rightDist
-            direction = -1
-        elif leftDist < rightDist:
-            distance = leftDist
-    elif leftDist < maxSideDist:
-        distance = leftDist
-    elif rightDist < maxSideDist:
-        distance = rightDist
-        direction = -1
-        
-    if distance < minSideDist:
-        distance = minSideDist
-    
-    if distance > maxSideDist:
-        angle = 0 
-    else:
-        angle = direction * (maxSteeringAngle - maxSteeringAngle * (distance - minSideDist) / (maxSideDist - minSideDist))
-        
-    #print("Distance: {} Angle: {}".format(distance,angle) )
+    pid = PID.PID(P, I, D)
 
+    pid.SetPoint=0.0
+    pid.setSampleTime(0.01)
+    
+
+def wallMidPointPID(leftDist, rightDist, frontDist):
+    """ Update steering and motors based on sensor values to keep robot mid way between two walls """
+
+    #Control motor speed based on promixity of obstacle seen by front sensor
+    #setMotorPower(frontDist)
+    
+    #Calculate position between walls (L=-1.0, mid-point=0.0,R=1.0)
+    wallSep = rightDist + leftDist
+    position = (wallSep / 2) - rightDist
+    ratio = position * 2 / wallSep
+
+    pid.update(ratio)
+    output = pid.output
+    angle = maxSteeringAngle * output * 5
+    
+    print("PID ratio: {}, output: {}, angle: {}".format(ratio,output,angle) )
     rc.setSteering(angle)
 
 
@@ -138,6 +125,7 @@ def wallFollow(leftDist, rightDist, frontDist, left = False):
     """
     global lastWallDistance, targetWallDistance
     
+    #Control motor speed based on promixity of obstacle seen by front sensor
     setMotorPower(frontDist)
     
     if left == True:

@@ -586,6 +586,7 @@ def setMode(newMode):
             Sensors.startAll()
         elif mode == Mode.wallFollowing :
             ad.targetWallDistance = 0 #Reset
+            ad.initialisePID()
             Sensors.startAll()
             initDriving()
             
@@ -703,8 +704,10 @@ def main():
                 rightDist = Sensors.readDistance(2)
                 frontDist = Sensors.readDistance(3)
                 showSensorGraphics(leftDist, rightDist, frontDist)
-            elif mode == Mode.wallFollowing :
                 
+            elif mode == Mode.wallFollowing :
+                #Run preset number of cycles of auto driving code before dropping back to main robot loop
+                #Controller will not respond in inside this loop. Loop exits if front sensor detects obstackle.
                 for a in range( autoCycles ):
                     #Update steering and motors based on sensor readings
                     #print("Loop time: {:.2f}".format( time.perf_counter() - timeC ) )
@@ -714,7 +717,9 @@ def main():
                     rightDist = Sensors.readDistance(2)
                     frontDist = Sensors.readDistance(3)
                     #print("Sensors read time: {:.2f}".format( time.perf_counter() - timeC ) )
-                    ad.wallFollow(leftDist, rightDist, frontDist)
+                    
+                    #Update robot based on autonomous driving algorithm 
+                    ad.wallMidPointPID(leftDist, rightDist, frontDist)
                     if debugInfo > 0:
                         showSensorGraphics(leftDist, rightDist, frontDist)
                     if debugInfo == 1:
