@@ -6,12 +6,12 @@ import PID
 minSideDist = 100
 maxSideDist = 200
 minFrontDist = 120
-maxSteeringAngle = 25
+maxSteeringAngle = 50
 lastWallDistance = 0
 targetWallDistance = 0
-Pk = 0.2
-Ik = 0.0
-Dk = 0.0
+Pk = 0.35
+Ik = 0.05
+Dk = 0.1
 
 
 def updatePk(increment):
@@ -112,8 +112,8 @@ def updateMaxSteeringAngle(increment):
 
     if maxSteeringAngle < 5:
         maxSteeringAngle = 5
-    elif maxSteeringAngle > 50:
-        maxSteeringAngle = 50
+    elif maxSteeringAngle > 60:
+        maxSteeringAngle = 60
     
     
 def initialisePID(setPoint=0.0):
@@ -130,7 +130,7 @@ def wallMidPointPID(leftDist, rightDist, frontDist):
     """ Update steering and motors based on sensor values to keep robot mid way between two walls """
 
     #Control motor speed based on promixity of obstacle seen by front sensor
-    #setMotorPower(frontDist)
+    setMotorPower(frontDist)
     
     #Calculate position between walls (L=-1.0, mid-point=0.0,R=1.0)
     wallSep = rightDist + leftDist
@@ -141,7 +141,7 @@ def wallMidPointPID(leftDist, rightDist, frontDist):
     output = pid.output
     angle = maxSteeringAngle * output * 2
     
-    print("PID ratio: {}, output: {}, angle: {}".format(ratio,output,angle) )
+    #print("PID ratio: {}, output: {}, angle: {}".format(ratio,output,angle) )
     rc.setSteering(angle)
 
 

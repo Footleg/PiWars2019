@@ -190,6 +190,14 @@ w,w,r,w,w,
 o,w,w,w,o
 ]
 
+red_eye_narrow = [
+o,o,o,o,o,
+o,w,w,w,o,
+w,r,r,r,w,
+o,w,w,w,o,
+o,o,o,o,o
+]
+
 one = [
 p,p,g,p,p,
 p,g,g,p,p,

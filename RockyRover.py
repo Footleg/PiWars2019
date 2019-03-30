@@ -15,6 +15,7 @@ class Mode(Enum):
     manual = 1
     sensorsTest = 2
     wallFollowing = 3
+    hubbleChallenge = 4
     
 class MenuLevel(Enum):
     """ MenuLevel Enum class.
@@ -61,7 +62,8 @@ rightBtn1Pressed = False
 hatEditTracker = 0
 defaultPowerLevel = 30
 autoCycles = 1
-
+steeringLook = True
+eyesPos = 0 #Stores which direction eyes are looking (so the LEDs are not repeatedly updated to same pattern)
 
 def initStatus(status):
     """ Callback function which displays status during initialisation """
@@ -117,8 +119,9 @@ def leftTriggerChangeHandler(value):
             speedL = -speedR
             rc.setLeftMotorPower(speedL)
             rc.setRightMotorPower(speedR)
-            eyes.addFrame(ledMatrixDisplays.eye_downright,1)
-            eyes.addFrame(ledMatrixDisplays.eye_downleft,2)
+            if steeringLook == True:
+                eyes.addFrame(ledMatrixDisplays.eye_downright,1)
+                eyes.addFrame(ledMatrixDisplays.eye_downleft,2)
     
     
 def rightTriggerChangeHandler(value):
@@ -133,8 +136,9 @@ def rightTriggerChangeHandler(value):
             speedR = -speedL
             rc.setLeftMotorPower(speedL)
             rc.setRightMotorPower(speedR)
-            eyes.addFrame(ledMatrixDisplays.eye_downright,1)
-            eyes.addFrame(ledMatrixDisplays.eye_downleft,2)
+            if steeringLook == True:
+                eyes.addFrame(ledMatrixDisplays.eye_downright,1)
+                eyes.addFrame(ledMatrixDisplays.eye_downleft,2)
     
 
 def hatChangeHandler(valLR,valUD):
@@ -190,7 +194,7 @@ def hatChangeHandler(valLR,valUD):
         showText(screen, "Max auto steer angle: {}".format(ad.maxSteeringAngle), (10,442), size=textsize)     
     elif hatEditTracker == 7:
         #Update PID tuning Pk
-        ad.updatePk(0.01 * valLR)
+        ad.updatePk(0.05 * valLR)
         showText(screen, "PID Pk: {}".format(ad.Pk), (10,442), size=textsize)     
     elif hatEditTracker == 8:
         #Update PID tuning Ik
@@ -278,13 +282,18 @@ def armShooter():
         ds.armESC()
         eyes.showNow(ledMatrixDisplays.target)
         ds.motorOn()
-
+        steeringLook = False
+        
     
 def disarmShooter():
     """ Shut down shooter module """
+    global eyesPos
+    
     ds.motorOff()
     ds.laserOff()
     eyes.addFrame(ledMatrixDisplays.eye_open)
+    eyesPos = 0
+    steeringLook = True
     
     
 def fireDart():
@@ -311,6 +320,8 @@ def mouseDownHandler(pos, btn):
                     setMode(Mode.sensorsTest)
                 elif btn == 2 :
                     setMode(Mode.wallFollowing)
+                elif btn == 3 :
+                    setMode(Mode.hubbleChallenge)
                 elif btn == 5 :
                     showMenu(MenuLevel.close)
                     
@@ -374,6 +385,8 @@ def updatePowerLimiting():
         Holding right button 1 raises limit to 60%
         Holding both left & right button 1 raises limit to 100%
     """
+    global steeringLook
+    
     powerLimit = defaultPowerLevel
     secondLevelAddn = int( (100 - defaultPowerLevel) * 1 / 3 )
     thirdLevelAddn = 100 - defaultPowerLevel - secondLevelAddn
@@ -389,6 +402,15 @@ def updatePowerLimiting():
     #Update motor speeds for new power limit level
     rc.setLeftMotorPower(rc.motorPowerL)
     rc.setRightMotorPower(rc.motorPowerR)
+    
+    #Set eyes to red if power boosted
+    if powerLimit > defaultPowerLevel:
+        steeringLook = False
+        eyes.addFrame(ledMatrixDisplays.red_eye_narrow)
+    else:
+        steeringLook = True
+        eyes.addFrame(ledMatrixDisplays.eye_open)
+        eyesPos = 0
 
     
 def showImage(screen,filename, position = [0,0]):
@@ -482,8 +504,9 @@ def showMenu(level):
         showImage( screen, "mars1_btn180.gif", (borderX+sepX,borderY) )
         showText(screen, "Sensor Test", (borderX+sepX+34,borderY+185), Colour.Blue, 30, True )
         showImage( screen, "pluto_btn180.gif", (borderX+2*sepX,borderY) )
-        showText(screen, "Wall Follow", (borderX+2*sepX+34,borderY+185), Colour.Blue, 30, True )
+        showText(screen, "Wall Avoid", (borderX+2*sepX+34,borderY+185), Colour.Blue, 30, True )
         showImage( screen, "neptune_btn180.gif", (borderX,borderY+sepY) )
+        showText(screen, "Hubble", (borderX+55,borderY+sepY+185), Colour.Blue, 30, True )
         showImage( screen, "moon_btn180.gif", (borderX+sepX,borderY+sepY) )
         showImage( screen, "venus1_btn180.gif", (borderX+2*sepX,borderY+sepY) )
         showText(screen, "Exit", (borderX+2*sepX+70,borderY+sepY+185), Colour.Blue, 30, True )
@@ -521,6 +544,8 @@ def setModeBackground():
         showImage( screen, "iss_solar_panel.jpg" )
     elif mode == Mode.wallFollowing :
         showImage( screen, "iss_solar_panel.jpg" )
+    elif mode == Mode.hubbleChallenge :
+        showImage( screen, "LagoonNebula.jpg" )
 
 
 def getMenuBtn(pos):
@@ -601,6 +626,10 @@ def setMode(newMode):
             ad.initialisePID()
             Sensors.startAll()
             initDriving()
+        elif mode == Mode.hubbleChallenge :
+            #Initialise pixy
+            Sensors.startAll()
+            initDriving()
             
 
 def initDriving():
@@ -613,15 +642,25 @@ def initDriving():
 
 def setSteering(angle):
     """ Local method to update eyes before passing steering to robot control module """
+    global eyesPos
+    
     rc.setSteering(angle)
     print(angle)
-    #Set eyes based in steering
-    if angle < -10:
-        eyes.addFrame(ledMatrixDisplays.eye_downleft)
-    elif angle > 10:
-        eyes.addFrame(ledMatrixDisplays.eye_downright)
-    else:
-        eyes.addFrame(ledMatrixDisplays.eye_open)
+    
+    if steeringLook == True:
+        #Set eyes based on steering
+        if angle < -10:
+            if eyesPos != -1:
+                eyes.addFrame(ledMatrixDisplays.eye_downleft)
+                eyesPos = -1
+        elif angle > 10:
+            if eyesPos != 1:
+                eyes.addFrame(ledMatrixDisplays.eye_downright)
+                eyesPos = 1
+        else:
+            if eyesPos != 0:
+                eyes.addFrame(ledMatrixDisplays.eye_open)
+                eyesPos = 0
 
 
 def main():
@@ -740,6 +779,21 @@ def main():
                     #Break from inner auto cycle loop if front sensor distance below min
                     if frontDist < ad.minFrontDist:
                         break
+                    
+            elif mode == Mode.hubbleChallenge :
+                #Run preset number of cycles of auto driving code before dropping back to main robot loop
+                #Controller will not respond in inside this loop. Loop exits if front sensor detects obstackle.
+                for a in range( autoCycles ):
+                    frontDist = Sensors.readDistance(3)
+                    if debugInfo > 0:
+                        showSensorGraphics(leftDist, rightDist, frontDist)
+                    if debugInfo == 1:
+                        #Display debugging info on screen relevent to mode
+                        showDebugData()
+                    #Break from inner auto cycle loop if front sensor distance below min
+                    if frontDist < ad.minFrontDist:
+                        break
+                    
                         
             #Update led RGB matrix displays with next frame of any queued animation
             if frame > 2:

@@ -15,7 +15,7 @@ servoMin = 105  #105 Min pulse length (out of 4096)
 servoMax = 475  #500 Max pulse length (out of 4096)
 servoRange = 180 #Rotation range in degrees of the servos being used
 motorPowerLimiting = 50 #Default limits motors to 50 power
-maxPulseLength = 4095 #Length of an always on pulse for the pwm board
+maxPulseLength = 4090 #Length of an always on pulse for the pwm board (cap below true max of 4096 as pwm cuts out at this pulse length)
 channelPulseLengths = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0] #Store pulse lengths sent to each channel (for debug info)
 
 
