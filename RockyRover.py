@@ -111,10 +111,12 @@ def leftTriggerChangeHandler(value):
     """ Handler for left trigger.
         If not turning then controls spot turning.
     """
+    global angle
     
     if mode == Mode.manual:
-        if angle == 90:
+        #if angle == 0:
             rc.spotTurnSteering(40)
+            angle = 90 #Indicates spot steering servo position are set
             speedR = (value + 1) * 50
             speedL = -speedR
             rc.setLeftMotorPower(speedL)
@@ -128,10 +130,12 @@ def rightTriggerChangeHandler(value):
     """ Handler for right trigger.
         If not turning then controls spot turning.
     """
+    global angle
     
     if mode == Mode.manual:
-        if angle == 90:
+        #if angle == 0:
             rc.spotTurnSteering(40)
+            angle = 90 #Indicates spot steering servo position are set
             speedL = (value + 1) * 50
             speedR = -speedL
             rc.setLeftMotorPower(speedL)
