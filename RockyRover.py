@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+import sys
+sys.path.append('../pygame-controller/')
 
 import pygame, random, time
 import RobotControl as rc
