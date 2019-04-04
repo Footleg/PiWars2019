@@ -20,9 +20,6 @@ Enter the repo directory:
 Run this command to switch to the mock branch:
 > git checkout mock
 
-Run this command to download the code from the mock branch:
-> git pull
-
 Run the mock robot:
 > python3 RockyRover.py
 
