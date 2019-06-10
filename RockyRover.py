@@ -15,6 +15,7 @@ class Mode(Enum):
     manual = 1
     sensorsTest = 2
     wallFollowing = 3
+    hubbleChallenge = 4
     
 class MenuLevel(Enum):
     """ MenuLevel Enum class.
@@ -59,9 +60,11 @@ rightBtn1Pressed = False
 
 #Hat editable parameters
 hatEditTracker = 0
-defaultPowerLevel = 30
+defaultPowerLevel = 50 #Was 30, but increased for maze challenge
 autoCycles = 1
-
+steeringLook = True
+eyesPos = 0 #Stores which direction eyes are looking (so the LEDs are not repeatedly updated to same pattern)
+mazeState = 0
 
 def initStatus(status):
     """ Callback function which displays status during initialisation """
@@ -109,32 +112,38 @@ def leftTriggerChangeHandler(value):
     """ Handler for left trigger.
         If not turning then controls spot turning.
     """
+    global angle
     
     if mode == Mode.manual:
-        if angle == 90:
+        #if angle == 0:
             rc.spotTurnSteering(40)
+            angle = 90 #Indicates spot steering servo position are set
             speedR = (value + 1) * 50
             speedL = -speedR
             rc.setLeftMotorPower(speedL)
             rc.setRightMotorPower(speedR)
-            eyes.addFrame(ledMatrixDisplays.eye_downright,1)
-            eyes.addFrame(ledMatrixDisplays.eye_downleft,2)
+            if steeringLook == True:
+                eyes.addFrame(ledMatrixDisplays.eye_downright,1)
+                eyes.addFrame(ledMatrixDisplays.eye_downleft,2)
     
     
 def rightTriggerChangeHandler(value):
     """ Handler for right trigger.
         If not turning then controls spot turning.
     """
+    global angle
     
     if mode == Mode.manual:
-        if angle == 90:
+        #if angle == 0:
             rc.spotTurnSteering(40)
+            angle = 90 #Indicates spot steering servo position are set
             speedL = (value + 1) * 50
             speedR = -speedL
             rc.setLeftMotorPower(speedL)
             rc.setRightMotorPower(speedR)
-            eyes.addFrame(ledMatrixDisplays.eye_downright,1)
-            eyes.addFrame(ledMatrixDisplays.eye_downleft,2)
+            if steeringLook == True:
+                eyes.addFrame(ledMatrixDisplays.eye_downright,1)
+                eyes.addFrame(ledMatrixDisplays.eye_downleft,2)
     
 
 def hatChangeHandler(valLR,valUD):
@@ -144,7 +153,7 @@ def hatChangeHandler(valLR,valUD):
     global hatEditTracker, defaultPowerLevel, autoCycles
     
     textsize = 30
-    settingCount = 6
+    settingCount = 9
     
     if valUD != 0:
         hatEditTracker += valUD
@@ -154,7 +163,7 @@ def hatChangeHandler(valLR,valUD):
             hatEditTracker = 0
     
     pygame.draw.rect(screen, Colour.Purple.value, pygame.Rect(10,440,400,30))
-    #showText(screen, "HatEdit: {}".format(hatEditTracker), (300,442), size=textsize)
+    #showText(screen, "HatEdit: {}".format(hatEditTracker), (10,442), size=textsize)
     
     if hatEditTracker == 1:
         #Update power level
@@ -188,6 +197,18 @@ def hatChangeHandler(valLR,valUD):
         #Update max auto steering angle
         ad.updateMaxSteeringAngle(5 * valLR)
         showText(screen, "Max auto steer angle: {}".format(ad.maxSteeringAngle), (10,442), size=textsize)     
+    elif hatEditTracker == 7:
+        #Update PID tuning Pk
+        ad.updatePk(0.05 * valLR)
+        showText(screen, "PID Pk: {}".format(ad.Pk), (10,442), size=textsize)     
+    elif hatEditTracker == 8:
+        #Update PID tuning Ik
+        ad.updateIk(0.01 * valLR)
+        showText(screen, "PID Ik: {}".format(ad.Ik), (10,442), size=textsize)     
+    elif hatEditTracker == 9:
+        #Update PID tuning Dk
+        ad.updateDk(0.01 * valLR)
+        showText(screen, "PID Dk: {}".format(ad.Dk), (10,442), size=textsize)     
 
 
 def selectBtnHandler(state):
@@ -255,6 +276,7 @@ def crossXBtnHandler(state):
             fireDart()
         else:
             ds.armed = False
+            rc.turn90Deg()
     
     
 def armShooter():
@@ -266,13 +288,18 @@ def armShooter():
         ds.armESC()
         eyes.showNow(ledMatrixDisplays.target)
         ds.motorOn()
-
+        steeringLook = False
+        
     
 def disarmShooter():
     """ Shut down shooter module """
+    global eyesPos
+    
     ds.motorOff()
     ds.laserOff()
     eyes.addFrame(ledMatrixDisplays.eye_open)
+    eyesPos = 0
+    steeringLook = True
     
     
 def fireDart():
@@ -299,6 +326,8 @@ def mouseDownHandler(pos, btn):
                     setMode(Mode.sensorsTest)
                 elif btn == 2 :
                     setMode(Mode.wallFollowing)
+                elif btn == 3 :
+                    setMode(Mode.hubbleChallenge)
                 elif btn == 5 :
                     showMenu(MenuLevel.close)
                     
@@ -362,6 +391,8 @@ def updatePowerLimiting():
         Holding right button 1 raises limit to 60%
         Holding both left & right button 1 raises limit to 100%
     """
+    global steeringLook
+    
     powerLimit = defaultPowerLevel
     secondLevelAddn = int( (100 - defaultPowerLevel) * 1 / 3 )
     thirdLevelAddn = 100 - defaultPowerLevel - secondLevelAddn
@@ -377,6 +408,15 @@ def updatePowerLimiting():
     #Update motor speeds for new power limit level
     rc.setLeftMotorPower(rc.motorPowerL)
     rc.setRightMotorPower(rc.motorPowerR)
+    
+    #Set eyes to red if power boosted
+    if powerLimit > defaultPowerLevel:
+        steeringLook = False
+        eyes.addFrame(ledMatrixDisplays.red_eye_narrow)
+    else:
+        steeringLook = True
+        eyes.addFrame(ledMatrixDisplays.eye_open)
+        eyesPos = 0
 
     
 def showImage(screen,filename, position = [0,0]):
@@ -470,8 +510,9 @@ def showMenu(level):
         showImage( screen, "mars1_btn180.gif", (borderX+sepX,borderY) )
         showText(screen, "Sensor Test", (borderX+sepX+34,borderY+185), Colour.Blue, 30, True )
         showImage( screen, "pluto_btn180.gif", (borderX+2*sepX,borderY) )
-        showText(screen, "Wall Follow", (borderX+2*sepX+34,borderY+185), Colour.Blue, 30, True )
+        showText(screen, "Wall Avoid", (borderX+2*sepX+34,borderY+185), Colour.Blue, 30, True )
         showImage( screen, "neptune_btn180.gif", (borderX,borderY+sepY) )
+        showText(screen, "Hubble", (borderX+55,borderY+sepY+185), Colour.Blue, 30, True )
         showImage( screen, "moon_btn180.gif", (borderX+sepX,borderY+sepY) )
         showImage( screen, "venus1_btn180.gif", (borderX+2*sepX,borderY+sepY) )
         showText(screen, "Exit", (borderX+2*sepX+70,borderY+sepY+185), Colour.Blue, 30, True )
@@ -509,6 +550,8 @@ def setModeBackground():
         showImage( screen, "iss_solar_panel.jpg" )
     elif mode == Mode.wallFollowing :
         showImage( screen, "iss_solar_panel.jpg" )
+    elif mode == Mode.hubbleChallenge :
+        showImage( screen, "LagoonNebula.jpg" )
 
 
 def getMenuBtn(pos):
@@ -563,7 +606,7 @@ def getMenuBtn(pos):
 
 def setMode(newMode):
     """ Sets up robot for specified mode. """
-    global mode
+    global mode, mazeState 
     
     #Stop hardware
     rc.stopAll()
@@ -586,9 +629,15 @@ def setMode(newMode):
             Sensors.startAll()
         elif mode == Mode.wallFollowing :
             ad.targetWallDistance = 0 #Reset
+            ad.initialisePID()
             Sensors.startAll()
             initDriving()
-            
+        elif mode == Mode.hubbleChallenge :
+            #Initialise pixy
+            ad.initialisePID()
+            Sensors.startAll()
+            initDriving()
+            mazeState  = 0
 
 def initDriving():
     """ Initialise robot for driving modes """
@@ -600,19 +649,30 @@ def initDriving():
 
 def setSteering(angle):
     """ Local method to update eyes before passing steering to robot control module """
+    global eyesPos
+    
     rc.setSteering(angle)
     print(angle)
-    #Set eyes based in steering
-    if angle < -10:
-        eyes.addFrame(ledMatrixDisplays.eye_downleft)
-    elif angle > 10:
-        eyes.addFrame(ledMatrixDisplays.eye_downright)
-    else:
-        eyes.addFrame(ledMatrixDisplays.eye_open)
+    
+    if steeringLook == True:
+        #Set eyes based on steering
+        if angle < -10:
+            if eyesPos != -1:
+                eyes.addFrame(ledMatrixDisplays.eye_downleft)
+                eyesPos = -1
+        elif angle > 10:
+            if eyesPos != 1:
+                eyes.addFrame(ledMatrixDisplays.eye_downright)
+                eyesPos = 1
+        else:
+            if eyesPos != 0:
+                eyes.addFrame(ledMatrixDisplays.eye_open)
+                eyesPos = 0
 
 
 def main():
-    global screen, debugInfo, autoCycles, eyes
+    global screen, debugInfo, autoCycles, eyes, mazeState
+
     
     virtual = True #Tracks whether running on real robot or digital twin virtual robot simulation
     
@@ -703,8 +763,10 @@ def main():
                 rightDist = Sensors.readDistance(2)
                 frontDist = Sensors.readDistance(3)
                 showSensorGraphics(leftDist, rightDist, frontDist)
-            elif mode == Mode.wallFollowing :
                 
+            elif mode == Mode.wallFollowing :
+                #Run preset number of cycles of auto driving code before dropping back to main robot loop
+                #Controller will not respond in inside this loop. Loop exits if front sensor detects obstackle.
                 for a in range( autoCycles ):
                     #Update steering and motors based on sensor readings
                     #print("Loop time: {:.2f}".format( time.perf_counter() - timeC ) )
@@ -714,7 +776,9 @@ def main():
                     rightDist = Sensors.readDistance(2)
                     frontDist = Sensors.readDistance(3)
                     #print("Sensors read time: {:.2f}".format( time.perf_counter() - timeC ) )
-                    ad.wallFollow(leftDist, rightDist, frontDist)
+                    
+                    #Update robot based on autonomous driving algorithm 
+                    ad.wallMidPointPID(leftDist, rightDist, frontDist)
                     if debugInfo > 0:
                         showSensorGraphics(leftDist, rightDist, frontDist)
                     if debugInfo == 1:
@@ -723,6 +787,62 @@ def main():
                     #Break from inner auto cycle loop if front sensor distance below min
                     if frontDist < ad.minFrontDist:
                         break
+                    
+            elif mode == Mode.hubbleChallenge :
+                #Actually this is the maze challenge, but I don't have time to rename to modes.
+                #Run preset number of cycles of auto driving code before dropping back to main robot loop
+                #Controller will not respond in inside this loop. Loop exits if front sensor detects obstackle.
+                for a in range( autoCycles ):
+                    #Update steering and motors based on sensor readings
+                    #print("Loop time: {:.2f}".format( time.perf_counter() - timeC ) )
+                    #timeC = time.perf_counter()
+
+                    leftDist = Sensors.readDistance(1)
+                    rightDist = Sensors.readDistance(2)
+                    frontDist = Sensors.readDistance(3)
+                    #print("Sensors read time: {:.2f}".format( time.perf_counter() - timeC ) )
+                    
+                    #Update robot based on autonomous driving algorithm 
+                    ad.wallMidPointPID(leftDist, rightDist, frontDist)
+                    if debugInfo > 0:
+                        showSensorGraphics(leftDist, rightDist, frontDist)
+                    if debugInfo == 1:
+                        #Display debugging info on screen relevent to mode
+                        showDebugData()
+                    #Break from inner auto cycle loop if front sensor distance below min
+                    if frontDist < ad.minFrontDist:
+                        #Turn based on state
+                        if mazeState == 0:
+                            rc.turn90Deg(False)
+                        elif mazeState == 1:
+                            rc.turn90Deg(False)
+                        elif mazeState == 2:
+                            rc.turn90Deg(True)
+                        elif mazeState == 3:
+                            rc.turn90Deg(True)
+                        elif mazeState == 4:
+                            rc.turn90Deg(False)
+                        elif mazeState == 5:
+                            rc.turn90Deg(False)
+                        elif mazeState == 6:
+                            rc.turn90Deg(False)
+                        elif mazeState == 7:
+                            rc.turn90Deg(True)
+                        #Check forward is now clear
+                        frontDist = Sensors.readDistance(3)
+                        if frontDist > ad.minFrontDist:
+                            #Increment state and drive forwards for 0.25 seconds
+                            ad.setMotorPower(100)
+                            time.sleep(0.25)
+                            mazeState += 1
+                            pygame.draw.rect(screen, Colour.Purple.value, pygame.Rect(10,440,400,30))
+                            showText(screen, "Maze State: {}".format(mazeState), (10,442), size=32)
+                        
+                        
+                        #Allow controller to be read
+                        break
+                    
+                   
                         
             #Update led RGB matrix displays with next frame of any queued animation
             if frame > 2:

@@ -119,23 +119,30 @@ def spotTurnSteering(angle):
     setSteeringRearLeft(leftAngle)
     setSteeringRearRight(rightAngle)
     
-
-def setSteeringStraight():
-    """ Sets all wheels pointing straight ahead
-    """
-    setSteeringFrontLeft(90)
-    setSteeringFrontRight(90)
-    setSteeringRearLeft(90)
-    setSteeringRearRight(90)
+    
+def turn90Deg(clockwise=True):
+    """ Turn 90 degrees on the spot) """
+    spotTurnSteering(40)
+    if clockwise == False:
+        speedR = 100
+    else:
+        speedR = -100
+    speedL = -speedR
+    setLeftMotorPower(speedL)
+    setRightMotorPower(speedR)
+    time.sleep(0.6)
+    setSteering(0)
+    setLeftMotorPower(0)
+    setRightMotorPower(0)
     
     
 #==========================================================================================
 # Motor Control Functions, using a pair of channels
 #==========================================================================================
 def setMotorPowerLimit(percentage):
-    #Cap maximum percentage to 99 as PWM board does not work with 100 cycle
-    if percentage > 99:
-        percentage = 99
+    #Cap maximum percentage to 100 or PWM board does not output
+    if percentage > 100:
+        percentage = 100
     pwmb.setMotorPowerLimiting(percentage)
     
 

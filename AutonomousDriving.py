@@ -1,14 +1,54 @@
 #!/usr/bin/env python3
-
 import RobotControl as rc
+import PID
 
 minSideDist = 100
 maxSideDist = 200
-minFrontDist = 120
-maxSteeringAngle = 25
+minFrontDist = 100
+maxSteeringAngle = 50
 lastWallDistance = 0
 targetWallDistance = 0
+Pk = 0.35
+Ik = 0.05
+Dk = 0.1
 
+
+def updatePk(increment):
+    """ Updates the value of Pk by the amount 'increment'.
+        Limits value to a minimum of zero
+    """
+    global Pk
+    
+    Pk += increment
+    
+    if Pk < 0:
+        Pk = 0
+
+
+def updateIk(increment):
+    """ Updates the value of Ik by the amount 'increment'.
+        Limits value to a minimum of zero
+    """
+    global Ik
+    
+    Ik += increment
+    
+    if Ik < 0:
+        Ik = 0
+        
+        
+def updateDk(increment):
+    """ Updates the value of Dk by the amount 'increment'.
+        Limits value to a minimum of zero
+    """
+    global Dk
+    
+    Dk += increment
+    
+    if Dk < 0:
+        Dk = 0
+        
+        
 def updateMinSideDist(increment):
     """ Updates the value of minSideDist by the amount 'increment'.
         Limits value to between a minimum allowed value and less
@@ -71,50 +111,36 @@ def updateMaxSteeringAngle(increment):
 
     if maxSteeringAngle < 5:
         maxSteeringAngle = 5
-    elif maxSteeringAngle > 50:
-        maxSteeringAngle = 50
+    elif maxSteeringAngle > 60:
+        maxSteeringAngle = 60
+    
+    
+def initialisePID(setPoint=0.0):
+    """ Initialise PID controller """
+    global pid
+    
+    pid = PID.PID(Pk, Ik, Dk)
+    
+    pid.SetPoint=setPoint
+    pid.setSampleTime(0.01)
     
 
-def driveAuto(leftDist, rightDist, frontDist):
-    """ Update steering and motors based on sensor values """
-    global minSideDist, maxSideDist, minFrontDist
+def wallMidPointPID(leftDist, rightDist, frontDist):
+    """ Update steering and motors based on sensor values to keep robot mid way between two walls """
 
-    if frontDist < minFrontDist:
-        #Stop if closer than min front distance from obstacle
-        rc.setLeftMotorPower(0)
-        rc.setRightMotorPower(0)
-    elif rc.motorPowerL == 0:
-        #Start motors if nothing closer than min front distance from obstacle
-        #and motors are stopped
-        rc.setLeftMotorPower(100)
-        rc.setRightMotorPower(100)
+    #Control motor speed based on promixity of obstacle seen by front sensor
+    setMotorPower(frontDist)
     
-    distance = 5000
-    direction = 1
-    
-    if leftDist < maxSideDist and rightDist < maxSideDist:
-        #Angle away from nearest side
-        if leftDist > rightDist:
-            distance = rightDist
-            direction = -1
-        elif leftDist < rightDist:
-            distance = leftDist
-    elif leftDist < maxSideDist:
-        distance = leftDist
-    elif rightDist < maxSideDist:
-        distance = rightDist
-        direction = -1
-        
-    if distance < minSideDist:
-        distance = minSideDist
-    
-    if distance > maxSideDist:
-        angle = 0 
-    else:
-        angle = direction * (maxSteeringAngle - maxSteeringAngle * (distance - minSideDist) / (maxSideDist - minSideDist))
-        
-    #print("Distance: {} Angle: {}".format(distance,angle) )
+    #Calculate position between walls (L=-1.0, mid-point=0.0,R=1.0)
+    wallSep = rightDist + leftDist
+    position = (wallSep / 2) - rightDist
+    ratio = position * 2 / wallSep
 
+    pid.update(ratio)
+    output = pid.output
+    angle = maxSteeringAngle * output * 2
+    
+    #print("PID ratio: {}, output: {}, angle: {}".format(ratio,output,angle) )
     rc.setSteering(angle)
 
 
@@ -138,6 +164,7 @@ def wallFollow(leftDist, rightDist, frontDist, left = False):
     """
     global lastWallDistance, targetWallDistance
     
+    #Control motor speed based on promixity of obstacle seen by front sensor
     setMotorPower(frontDist)
     
     if left == True:

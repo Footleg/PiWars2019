@@ -20,24 +20,37 @@ tof2 = VL53L1X.VL53L1X(i2c_bus=1, i2c_address=0x29)
 tof3 = VL53L1X.VL53L1X(i2c_bus=1, i2c_address=0x29)
 tofs = [tof1,tof2,tof3]
 
+
 def initialise():
     #Initialise sensors on all channels
-    plexer.channel(leftChannel)
-    tof1.open() # Initialise the i2c bus and configure the sensor
-    plexer.channel(rightChannel)
-    tof2.open() # Initialise the i2c bus and configure the sensor
-    plexer.channel(frontChannel)
-    tof3.open() # Initialise the i2c bus and configure the sensor
+    for idx in range(1,4):
+        initialiseSensor(idx)
+        
 
+def initialiseSensor(sensorNumber, i2c_address=0x29):
+    #Get channel
+    channel = getSensorChannel(sensorNumber)
+    #Switch mux channel
+    plexer.channel(channel)
+    
+    sensorIdx = sensorNumber - 1
+    
+    try:
+        #Open sensor communication
+        tofs[sensorIdx].open()
+    except:
+        #Failed to communicate to sensor
+        tofs[sensorIdx] = none
+        
 
-def getSensorChannel(sensor):
-    if sensor == 1:
+def getSensorChannel(sensorNumber):
+    if sensorNumber == 1:
         #Left side sensor
         channel = leftChannel
-    elif sensor == 2:
+    elif sensorNumber == 2:
         #Right side sensor
         channel = rightChannel
-    elif sensor == 3:
+    elif sensorNumber == 3:
         #Right side sensor
         channel = frontChannel
     else:
