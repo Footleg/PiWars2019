@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import sys,time
 from Adafruit_PWM_Servo_Driver import PWM
+from Adafruit_MCP230xx import Adafruit_MCP230XX
 
 # PWM board configuration values.
 freqPWM = 50    #Frequency of PWM pulses (default is 50 Hz)
@@ -23,6 +24,8 @@ pwm = PWM(0x40, debug=False)
 # Set frequency to 50 Hz
 pwm.setPWMFreq(freqPWM)
 
+# Initialise MCP 16 channel io
+mcp = Adafruit_MCP230XX(address = 0x20, num_gpios = 16)
 
 def setServoPosition(channel, position):
     """ Sets the position of a servo in degrees
@@ -99,6 +102,7 @@ def main():
     """ Test function for servos and motors
     """
 
+    """
     #Servo on channel 0
     testChannel = 0
     print("Setting servo on channel {} to 0 degrees position.".format(testChannel))
@@ -110,7 +114,7 @@ def main():
     print("Setting servo on channel {} to 90 degrees position.".format(testChannel))
     setServoPosition(testChannel, 90)
     time.sleep(1)
-    """
+    
     #Motor A
     print("Setting motor A to power 50 forwards.")
     setPercentageOn(motorAChannel1,0)
@@ -123,8 +127,8 @@ def main():
     setPercentageOn(motorAChannel1,50)
     time.sleep(2)
     print("Setting motor A to power 0.")
-    setPercentageOn(motorAChannel1,50)
-    """
+    setPercentageOn(motorAChannel1,0)
+    
     #Motor B
     print("Setting motor B to power 50 forwards.")
     setPercentageOn(motorBChannel1,0)
@@ -137,8 +141,21 @@ def main():
     setPercentageOn(motorBChannel1,50)
     time.sleep(2)
     print("Setting motor B to power 0.")
-    setPercentageOn(motorBChannel1,50)
+    setPercentageOn(motorBChannel1,0)
+    """
+    
+    #Test one PWM output
+    setConstantOn(11)
+    time.sleep(2)
+    
+    #Test one IO
+    ioPin = 15
+    mcp.config(ioPin, mcp.OUTPUT)
+    mcp.output(ioPin, 1)  # Pin High
+    time.sleep(2);
+    mcp.output(ioPin, 0)  # Pin Low
 
+    
     #All Off
     print("Turning off all channels.")
     allOff()
