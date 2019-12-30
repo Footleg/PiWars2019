@@ -98,6 +98,27 @@ def allOff():
     channelPulseLengths = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 
 
+def setMotorsPower(leftPower,rightPower):
+    lPowerChannel = motorAChannel1
+    lZeroChannel = motorAChannel2
+    rPowerChannel = motorBChannel1
+    rZeroChannel = motorBChannel2
+
+    if leftPower < 0:
+        setPercentageOn(motorAChannel2,0)
+        setPercentageOn(motorAChannel1,-leftPower)
+    else:
+        setPercentageOn(motorAChannel1,0)
+        setPercentageOn(motorAChannel2,leftPower)
+
+    if rightPower < 0:
+        setPercentageOn(motorBChannel2,0)
+        setPercentageOn(motorBChannel1,-rightPower)
+    else:
+        setPercentageOn(motorBChannel1,0)
+        setPercentageOn(motorBChannel2,rightPower)
+
+
 def main():
     """ Test function for servos and motors
     """
@@ -114,7 +135,7 @@ def main():
     print("Setting servo on channel {} to 90 degrees position.".format(testChannel))
     setServoPosition(testChannel, 90)
     time.sleep(1)
-    
+
     #Motor A
     print("Setting motor A to power 50 forwards.")
     setPercentageOn(motorAChannel1,0)
@@ -128,7 +149,7 @@ def main():
     time.sleep(2)
     print("Setting motor A to power 0.")
     setPercentageOn(motorAChannel1,0)
-    
+
     #Motor B
     print("Setting motor B to power 50 forwards.")
     setPercentageOn(motorBChannel1,0)
@@ -143,11 +164,11 @@ def main():
     print("Setting motor B to power 0.")
     setPercentageOn(motorBChannel1,0)
     """
-    
+
     #Test one PWM output
     setConstantOn(11)
     time.sleep(2)
-    
+
     #Test one IO
     ioPin = 15
     mcp.config(ioPin, mcp.OUTPUT)
@@ -155,7 +176,7 @@ def main():
     time.sleep(2);
     mcp.output(ioPin, 0)  # Pin Low
 
-    
+
     #All Off
     print("Turning off all channels.")
     allOff()
