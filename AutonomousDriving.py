@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
+
 import RobotControl as rc
 import PID
 
 minSideDist = 100
 maxSideDist = 200
-minFrontDist = 100
+minFrontDist = 120
 maxSteeringAngle = 50
 lastWallDistance = 0
 targetWallDistance = 0
