@@ -293,7 +293,7 @@ def main():
     time.sleep(1)
     setRightMotorPower(0)
     """
-    setSteeringStraight()
+    setSteering(0)
     speed = 50
     setLeftMotorPower(speed)
     setRightMotorPower(speed)
