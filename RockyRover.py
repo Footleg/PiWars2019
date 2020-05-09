@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-import sys
-sys.path.append('../pygame-controller/')
 
 import pygame, random, time
 import RobotControl as rc
@@ -62,10 +60,11 @@ rightBtn1Pressed = False
 
 #Hat editable parameters
 hatEditTracker = 0
-defaultPowerLevel = 30
+defaultPowerLevel = 50 #Was 30, but increased for maze challenge
 autoCycles = 1
 steeringLook = True
 eyesPos = 0 #Stores which direction eyes are looking (so the LEDs are not repeatedly updated to same pattern)
+mazeState = 0
 
 def initStatus(status):
     """ Callback function which displays status during initialisation """
@@ -164,7 +163,7 @@ def hatChangeHandler(valLR,valUD):
             hatEditTracker = 0
     
     pygame.draw.rect(screen, Colour.Purple.value, pygame.Rect(10,440,400,30))
-    #showText(screen, "HatEdit: {}".format(hatEditTracker), (300,442), size=textsize)
+    #showText(screen, "HatEdit: {}".format(hatEditTracker), (10,442), size=textsize)
     
     if hatEditTracker == 1:
         #Update power level
@@ -277,6 +276,7 @@ def crossXBtnHandler(state):
             fireDart()
         else:
             ds.armed = False
+            rc.turn90Deg()
     
     
 def armShooter():
@@ -606,7 +606,7 @@ def getMenuBtn(pos):
 
 def setMode(newMode):
     """ Sets up robot for specified mode. """
-    global mode
+    global mode, mazeState 
     
     #Stop hardware
     rc.stopAll()
@@ -634,9 +634,10 @@ def setMode(newMode):
             initDriving()
         elif mode == Mode.hubbleChallenge :
             #Initialise pixy
+            ad.initialisePID()
             Sensors.startAll()
             initDriving()
-            
+            mazeState  = 0
 
 def initDriving():
     """ Initialise robot for driving modes """
@@ -670,7 +671,8 @@ def setSteering(angle):
 
 
 def main():
-    global screen, debugInfo, autoCycles, eyes
+    global screen, debugInfo, autoCycles, eyes, mazeState
+
     
     virtual = True #Tracks whether running on real robot or digital twin virtual robot simulation
     
@@ -787,10 +789,21 @@ def main():
                         break
                     
             elif mode == Mode.hubbleChallenge :
+                #Actually this is the maze challenge, but I don't have time to rename to modes.
                 #Run preset number of cycles of auto driving code before dropping back to main robot loop
                 #Controller will not respond in inside this loop. Loop exits if front sensor detects obstackle.
                 for a in range( autoCycles ):
+                    #Update steering and motors based on sensor readings
+                    #print("Loop time: {:.2f}".format( time.perf_counter() - timeC ) )
+                    #timeC = time.perf_counter()
+
+                    leftDist = Sensors.readDistance(1)
+                    rightDist = Sensors.readDistance(2)
                     frontDist = Sensors.readDistance(3)
+                    #print("Sensors read time: {:.2f}".format( time.perf_counter() - timeC ) )
+                    
+                    #Update robot based on autonomous driving algorithm 
+                    ad.wallMidPointPID(leftDist, rightDist, frontDist)
                     if debugInfo > 0:
                         showSensorGraphics(leftDist, rightDist, frontDist)
                     if debugInfo == 1:
@@ -798,8 +811,38 @@ def main():
                         showDebugData()
                     #Break from inner auto cycle loop if front sensor distance below min
                     if frontDist < ad.minFrontDist:
+                        #Turn based on state
+                        if mazeState == 0:
+                            rc.turn90Deg(False)
+                        elif mazeState == 1:
+                            rc.turn90Deg(False)
+                        elif mazeState == 2:
+                            rc.turn90Deg(True)
+                        elif mazeState == 3:
+                            rc.turn90Deg(True)
+                        elif mazeState == 4:
+                            rc.turn90Deg(False)
+                        elif mazeState == 5:
+                            rc.turn90Deg(False)
+                        elif mazeState == 6:
+                            rc.turn90Deg(False)
+                        elif mazeState == 7:
+                            rc.turn90Deg(True)
+                        #Check forward is now clear
+                        frontDist = Sensors.readDistance(3)
+                        if frontDist > ad.minFrontDist:
+                            #Increment state and drive forwards for 0.25 seconds
+                            ad.setMotorPower(100)
+                            time.sleep(0.25)
+                            mazeState += 1
+                            pygame.draw.rect(screen, Colour.Purple.value, pygame.Rect(10,440,400,30))
+                            showText(screen, "Maze State: {}".format(mazeState), (10,442), size=32)
+                        
+                        
+                        #Allow controller to be read
                         break
                     
+                   
                         
             #Update led RGB matrix displays with next frame of any queued animation
             if frame > 2:

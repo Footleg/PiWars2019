@@ -120,6 +120,22 @@ def spotTurnSteering(angle):
     setSteeringRearRight(rightAngle)
     
     
+def turn90Deg(clockwise=True):
+    """ Turn 90 degrees on the spot) """
+    spotTurnSteering(40)
+    if clockwise == False:
+        speedR = 100
+    else:
+        speedR = -100
+    speedL = -speedR
+    setLeftMotorPower(speedL)
+    setRightMotorPower(speedR)
+    time.sleep(0.6)
+    setSteering(0)
+    setLeftMotorPower(0)
+    setRightMotorPower(0)
+    
+    
 #==========================================================================================
 # Motor Control Functions, using a pair of channels
 #==========================================================================================
