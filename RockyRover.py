@@ -4,7 +4,7 @@ import pygame, random, time
 import RobotControl as rc
 import AutonomousDriving as ad
 import dartShooter as ds
-from PygameController import RobotController
+from pygamecontroller import RobotController
 from enum import Enum
 from os import system
 import Sensors, ledMatrixDisplays
@@ -80,16 +80,22 @@ def leftStickChangeHandler(valLR, valUD):
     """ Handler function for left analogue stick.
         Controls motor speed using Up/Down stick position
     """
-    
+    # print(f"Mode: {mode}")
     if mode == Mode.manual:
         #Reset steering servos straight if angle is 90 in case we have been in spot steering mode
         if angle == 90:
             setSteering(0)
-            
-        speedL = -100 * valUD
+        
+        stickDeadZone = 0.05
+        if valUD > -stickDeadZone and valUD < stickDeadZone:
+            speedL = 0
+        else:
+            speedL = -100 * valUD
+
         speedR = speedL
         rc.setLeftMotorPower(speedL)
         rc.setRightMotorPower(speedR)
+        # print(f"L power : {speedL}; R Power: {speedR}")
 
 
 def rightStickChangeHandler(valLR, valUD):
@@ -99,13 +105,20 @@ def rightStickChangeHandler(valLR, valUD):
     global angle
     
     if mode == Mode.manual:
-        #Turn off motors if in spot turn mode and manual stick steering is activated
-        if rc.motorPowerL == -rc.motorPowerR:
-            rc.setLeftMotorPower(0)
-            rc.setRightMotorPower(0)
-            
-        angle = valLR * 40
-        setSteering(angle)
+
+        stickDeadZone = 0.05
+        if valLR > -stickDeadZone and valLR < stickDeadZone:
+            valLR = 0
+        else:
+            #Turn off motors if in spot turn mode and manual stick steering is activated
+            if rc.motorPowerL == -rc.motorPowerR:
+                rc.setLeftMotorPower(0)
+                rc.setRightMotorPower(0)
+
+        #Only apply stick value if not in spot turn mode (to stop stick noise cancelling spot steering)
+        if rc.motorPowerL != -rc.motorPowerR:        
+            angle = valLR * 40
+            setSteering(angle)
 
 
 def leftTriggerChangeHandler(value):
@@ -473,19 +486,21 @@ def showSensorGraphics(leftDist, rightDist, frontDist):
 def showDebugData():
     textsize = 38
     lineHeight = 24
-    cursor = (10,280)
-    pygame.draw.rect(screen, Colour.Purple.value, pygame.Rect(10,280,480,160))
+    cursor = (10,352)
+    pygame.draw.rect(screen, Colour.Purple.value, pygame.Rect(10,352,480,160))
     showText(screen, "Debug Information:", cursor, size=textsize)
     cursor = (cursor[0]+20,cursor[1]+lineHeight)
     showText(screen, "Power Limiting: {}%".format( rc.getMotorPowerLimit() ), cursor, size=textsize)
     cursor = (cursor[0],cursor[1]+lineHeight)
-    showText(screen, "Left motor ch1 pulse len: {}/4096".format( rc.getPWMPulseLength(rc.motorsLeftChannelA) ), cursor, size=textsize)
-    cursor = (cursor[0],cursor[1]+lineHeight)
-    showText(screen, "Left motor ch2 pulse len: {}/4096".format( rc.getPWMPulseLength(rc.motorsLeftChannelB) ), cursor, size=textsize)
-    cursor = (cursor[0],cursor[1]+lineHeight)
-    showText(screen, "Right motor ch1 pulse len: {}/4096".format( rc.getPWMPulseLength(rc.motorsRightChannelA) ), cursor, size=textsize)
-    cursor = (cursor[0],cursor[1]+lineHeight)
-    showText(screen, "Right motor ch2 pulse len: {}/4096".format( rc.getPWMPulseLength(rc.motorsRightChannelB) ), cursor, size=textsize)
+    showText(screen, f"Batt: {rc.getMotorSupplyVoltage():.2f}V", cursor, size=textsize)
+    # cursor = (cursor[0],cursor[1]+lineHeight)
+    # showText(screen, "Left motor ch1 pulse len: {}/4096".format( rc.getPWMPulseLength(12) ), cursor, size=textsize)
+    # cursor = (cursor[0],cursor[1]+lineHeight)
+    # showText(screen, "Left motor ch2 pulse len: {}/4096".format( rc.getPWMPulseLength(13) ), cursor, size=textsize)
+    # cursor = (cursor[0],cursor[1]+lineHeight)
+    # showText(screen, "Right motor ch1 pulse len: {}/4096".format( rc.getPWMPulseLength(14) ), cursor, size=textsize)
+    # cursor = (cursor[0],cursor[1]+lineHeight)
+    # showText(screen, "Right motor ch2 pulse len: {}/4096".format( rc.getPWMPulseLength(15) ), cursor, size=textsize)
     
 
 def showMenu(level):
@@ -613,6 +628,7 @@ def setMode(newMode):
     disarmShooter() #This also restores led matrices to eye_open pattern
     
     #Update global mode
+    # print(f"Setting mode: {newMode}")
     mode = newMode
     
     #Update display for active mode
@@ -652,7 +668,7 @@ def setSteering(angle):
     global eyesPos
     
     rc.setSteering(angle)
-    print(angle)
+    # print(angle)
     
     if steeringLook == True:
         #Set eyes based on steering
@@ -678,8 +694,8 @@ def main():
     
     # Determine screen resolution before pygame window is created
     pygame.init()
-    screen_w = pygame.display.Info().current_w
-    screen_h = pygame.display.Info().current_h
+    screen_w = 800 #pygame.display.Info().current_w FAILED to detect screen size on bullseyed
+    screen_h = 480 #pygame.display.Info().current_h
     
     #Run in try..finally structure so that program exits gracefully on hitting any
     #errors in the callback functions
@@ -739,6 +755,9 @@ def main():
             frame += 1
             #message = "Speed: {}, Steering: {}".format(speed,angle)
             #robotControl.message = message
+
+            # Keep motors alive
+            rc.sb.pulseWatchdog()
             
             #Exit to menu if both select and start buttons are held down at the same time
             if selectBtnPressed and startBtnPressed:

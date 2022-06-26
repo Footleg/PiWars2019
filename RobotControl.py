@@ -3,19 +3,20 @@
 """ PiWars Rocky Rover robot control functions module
 """
 
-import AdafruitPWMboard as pwmb
-import time
-import pygame
+from sentinelboard import SentinelBoard
+import pygame, statistics, time
+
+
+sb = SentinelBoard()
+
+# Set voltage reading calibration for this specific board
+sb.sbHardware.voltage_multiplier = 1.125
 
 # PWM board channel configuration 
 servoFrontLeftChannel = 0
 servoFrontRightChannel = 1
 servoRearLeftChannel = 2
 servoRearRightChannel = 3
-motorsLeftChannelA = 12
-motorsLeftChannelB = 13
-motorsRightChannelA = 15
-motorsRightChannelB = 14
 
 # Servo calibration constants
 servoFrontLeftOffset = 32 #14 <- plywood prototype
@@ -38,6 +39,9 @@ motorPowerR = 0
 
 showRobotGraphic = False
 
+voltage_readings = []
+firstSetVoltReadings = True
+timeSinceLastRead = 0
 
 #==========================================================================================
 # Safe steering functions to ensure servos are not set beyond their limits of free movement
@@ -58,7 +62,7 @@ def setSteeringLegPositionSafely(angle, servoChannel, servoOffset):
     servoPos = servoPos + servoOffset
     
     #Set servo position
-    pwmb.setServoPosition(servoChannel, servoPos)
+    sb.setServoPosition(servoChannel, servoPos)
     
     if showRobotGraphic:
         drawVirtualRobot( pygame.display.get_surface() )
@@ -130,7 +134,7 @@ def turn90Deg(clockwise=True):
     speedL = -speedR
     setLeftMotorPower(speedL)
     setRightMotorPower(speedR)
-    time.sleep(0.6)
+    sb.watchdogPause(0.6)
     setSteering(0)
     setLeftMotorPower(0)
     setRightMotorPower(0)
@@ -143,51 +147,83 @@ def setMotorPowerLimit(percentage):
     #Cap maximum percentage to 100 or PWM board does not output
     if percentage > 100:
         percentage = 100
-    pwmb.setMotorPowerLimiting(percentage)
+    sb.setMotorPowerLimiting(percentage)
     
 
 def getMotorPowerLimit():
-    return pwmb.motorPowerLimiting
+    return sb.motorPowerLimiting
     
+
+def getMotorSupplyVoltage(readingsAv = 10):
+    global timeSinceLastRead, firstSetVoltReadings
+
+    # Only read if over 10 s since last reading
+    timenow = time.time()
+    if timenow - timeSinceLastRead > 1:
+        timeSinceLastRead = timenow
+
+        readings = []
+        for i in range(readingsAv):
+            motorV = sb.sbHardware.motor_voltage
+            readings.append(motorV)
+
+        avReading = statistics.median(readings)
+
+        if len(voltage_readings) > 9:
+            #Throw out any bad readings from array
+            if firstSetVoltReadings:
+                avSet = statistics.mean(voltage_readings)
+                print(f"Set average: {avSet}")
+                for idx in range(len(voltage_readings)-1,0,-1):
+                    print(f"Scanning {idx} value: {voltage_readings[idx]}")
+                    if abs(voltage_readings[idx]-avSet)/avSet > 0.2:
+                        #Remove reading which is 20% off median
+                        voltage_readings.pop(idx)
+                        print(f"Removed {idx}")
+                if len(voltage_readings) > 9:
+                    #Step cleaning set when all values are reasonable
+                    firstSetVoltReadings = False
+                
+            #Take average and only accept new reading if within 5% of it
+            prevAvReading = statistics.mean(voltage_readings)
+
+            if abs(avReading-prevAvReading)/prevAvReading < 0.05:
+                #Remove first item and add new one
+                voltage_readings.pop(0)
+                voltage_readings.append(avReading)
+        else:
+            # Just add reading to array
+            voltage_readings.append(avReading)
+
+    return statistics.mean(voltage_readings)
+
 
 def getPWMPulseLength(channel):
-    return pwmb.channelPulseLengths[channel]
-    
-
-def setMotorPower(channelA, channelB, power):
-    """ Uses a pair of pwm channels to send switching logic pulses to motor driver.
-        One channel is set to low (zero pulse width) and the other to a percentage on.
-    """
-    if power > 0:
-        pwmb.setPercentageOn(channelA, 0)
-        pwmb.setPercentageOn(channelB, power)
-    elif power < 0:
-        pwmb.setPercentageOn(channelB, 0)
-        pwmb.setPercentageOn(channelA, -power)
-    else:
-        pwmb.setPercentageOn(channelA, 0)
-        pwmb.setPercentageOn(channelB, 0)
-    
-    if showRobotGraphic:
-        drawVirtualRobot( pygame.display.get_surface() )
+    return sb.sbHardware.channelPulseLengths[channel]
 
 
 def setLeftMotorPower(power):
     global motorPowerL
     
-    setMotorPower(motorsLeftChannelA, motorsLeftChannelB, power)
+    sb.setMotorPower(1, power)
     motorPowerL = power
+    
+    if showRobotGraphic:
+        drawVirtualRobot( pygame.display.get_surface() )
     
     
 def setRightMotorPower(power):
     global motorPowerR
     
-    setMotorPower(motorsRightChannelA, motorsRightChannelB, power)
+    sb.setMotorPower(2, power)
     motorPowerR = power
+    
+    if showRobotGraphic:
+        drawVirtualRobot( pygame.display.get_surface() )
     
     
 def stopAll():
-    pwmb.allOff()
+    sb.sbHardware.allOff()
     
     
 def drawVirtualRobot(screen):
@@ -234,7 +270,7 @@ def drawVirtualRobot(screen):
         
         #Display motor speeds
         font = pygame.font.Font(None, 28)
-        motorSpeedL = int( (pwmb.channelPulseLengths[motorsLeftChannelB]-pwmb.channelPulseLengths[motorsLeftChannelA]) * 100 / 4096)
+        motorSpeedL = motorPowerL
         textBitmap = font.render("{}%".format(motorSpeedL), True, RED )
         arrowLength = 20 + abs(motorSpeedL * 2)
         arrowTop = 230-(arrowLength/2)
@@ -246,7 +282,7 @@ def drawVirtualRobot(screen):
             pygame.draw.polygon(screen, PURPLE, [(175,arrowBot+30),(145,arrowBot),(205,arrowBot)])
         screen.blit( textBitmap, (160,220) )
 
-        motorSpeedR = int( (pwmb.channelPulseLengths[motorsRightChannelA]-pwmb.channelPulseLengths[motorsRightChannelB]) * 100 / 4096)
+        motorSpeedR = motorPowerR
         textBitmap = font.render("{}%".format(motorSpeedR), True, RED )
         arrowLength = 20 + abs(motorSpeedR * 2)
         arrowTop = 230-(arrowLength/2)
@@ -288,38 +324,42 @@ def displayError(message):
     
 def main():
     """ Test function for servos and motors
+    """
+    sb.pulseWatchdog()
+
+    """
     setSteeringFrontLeft(130) #44
-    time.sleep(1)
+    sb.watchdogPause(1)
     setSteeringFrontRight(130) #40
-    time.sleep(1)
+    sb.watchdogPause(1)
     setSteeringRearLeft(130) #41
-    time.sleep(1)
+    sb.watchdogPause(1)
     setSteeringRearRight(130) #40
-    time.sleep(1)
+    sb.watchdogPause(1)
     setSteeringStraight()
-    time.sleep(1)
+    sb.watchdogPause(1)
     setLeftMotorPower(30)
-    time.sleep(1)
+    sb.watchdogPause(1)
     setLeftMotorPower(-30)
-    time.sleep(1)
+    sb.watchdogPause(1)
     setLeftMotorPower(0)
     setRightMotorPower(30)
-    time.sleep(1)
+    sb.watchdogPause(1)
     setRightMotorPower(-30)
-    time.sleep(1)
+    sb.watchdogPause(1)
     setRightMotorPower(0)
     """
     setSteering(0)
     speed = 50
     setLeftMotorPower(speed)
     setRightMotorPower(speed)
-    time.sleep(1)
+    sb.watchdogPause(1)
     stopAll()    
-    time.sleep(0.25)
+    sb.watchdogPause(0.25)
     speed = -50
     setLeftMotorPower(speed)
     setRightMotorPower(speed)
-    time.sleep(1)
+    sb.watchdogPause(1)
     
     stopAll()    
     
