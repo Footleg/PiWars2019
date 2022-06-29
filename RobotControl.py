@@ -18,20 +18,24 @@ servoFrontRightChannel = 1
 servoRearLeftChannel = 2
 servoRearRightChannel = 3
 
-# Servo calibration constants
-servoFrontLeftOffset = 32 #14 <- plywood prototype
-servoFrontRightOffset = -11 #36 <- plywood prototype
-servoRearLeftOffset = 14 #16 <- plywood prototype
-servoRearRightOffset = 24 #24 <- plywood prototype
+# Servo calibration constants (set to the number of degrees off the straight ahead
+# position the wheel angle sits at when the sticks are centered. So if the servo
+# was perfectly set so the mid-point was the straight ahead position these values
+# would be zero. In reality the servos are fitted slightly off from true so these
+# constants are used to adjust their positions to compensate).
+servoFrontLeftOffset = 0 
+servoFrontRightOffset = -11 
+servoRearLeftOffset = 6 #14 
+servoRearRightOffset = 20 #24 
 
 servoMinAngle = 40
 servoMaxAngle = 135
 
 #Globals to store positions servos have been set to
-servoPosFL = 80
-servoPosFR = 100
-servoPosBL = 110
-servoPosBR = 70
+servoPosFL = 90
+servoPosFR = 90
+servoPosBL = 90
+servoPosBR = 90
 
 #Globals to store power levels motors have been set to
 motorPowerL = 0
@@ -271,7 +275,7 @@ def drawVirtualRobot(screen):
         #Display motor speeds
         font = pygame.font.Font(None, 28)
         motorSpeedL = motorPowerL
-        textBitmap = font.render("{}%".format(motorSpeedL), True, RED )
+        textBitmap = font.render("{:.1f}%".format(motorSpeedL), True, RED )
         arrowLength = 20 + abs(motorSpeedL * 2)
         arrowTop = 230-(arrowLength/2)
         pygame.draw.rect(screen, PURPLE, pygame.Rect(160,arrowTop,30,arrowLength))
@@ -282,8 +286,8 @@ def drawVirtualRobot(screen):
             pygame.draw.polygon(screen, PURPLE, [(175,arrowBot+30),(145,arrowBot),(205,arrowBot)])
         screen.blit( textBitmap, (160,220) )
 
-        motorSpeedR = motorPowerR
-        textBitmap = font.render("{}%".format(motorSpeedR), True, RED )
+        motorSpeedR = -motorPowerR
+        textBitmap = font.render("{:.1f}%".format(motorSpeedR), True, RED )
         arrowLength = 20 + abs(motorSpeedR * 2)
         arrowTop = 230-(arrowLength/2)
         pygame.draw.rect(screen, PURPLE, pygame.Rect(620,230-(arrowLength/2),30,arrowLength))

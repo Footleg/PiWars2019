@@ -37,7 +37,10 @@ class Colour(Enum):
     DarkBlue  = (0,0,200)
     Purple = (100,0,100)
     
-    
+
+# Configuration constants
+stickDeadZone = 0.2
+
 #Declare globals
 mode = Mode.menu
 angle = 90
@@ -82,20 +85,30 @@ def leftStickChangeHandler(valLR, valUD):
     """
     # print(f"Mode: {mode}")
     if mode == Mode.manual:
-        #Reset steering servos straight if angle is 90 in case we have been in spot steering mode
-        if angle == 90:
-            setSteering(0)
         
-        stickDeadZone = 0.05
+        
         if valUD > -stickDeadZone and valUD < stickDeadZone:
-            speedL = 0
+            newUD = 0
         else:
-            speedL = -100 * valUD
+            if valUD > 0:
+                newUD = (valUD - stickDeadZone) / (1 - stickDeadZone)
+            else:
+                newUD = (valUD + stickDeadZone) / (1 - stickDeadZone)
 
-        speedR = speedL
-        rc.setLeftMotorPower(speedL)
-        rc.setRightMotorPower(speedR)
-        # print(f"L power : {speedL}; R Power: {speedR}")
+            #Reset steering servos straight if angle is 90 in case we have been in spot steering mode
+            if angle == 90:
+                print(f"Reset steering straight as exiting spot turn on left stick. Angle: {angle}")
+                # This exits spot steering mode as angle will no longer == 90
+                setSteering(0)
+                print(f"New angle: {angle}")
+
+        #Only apply power from L stick if not on spot steering mode (prevents stick noise stopping motors when spot turning)
+        if angle != 90:
+            speedL = -100 * newUD
+            speedR = speedL
+            rc.setLeftMotorPower(speedL)
+            rc.setRightMotorPower(speedR)
+            print(f"Setting speed from L stick. L power : {speedL}; R Power: {speedR} UD: {valUD} Treated as {newUD}")
 
 
 def rightStickChangeHandler(valLR, valUD):
@@ -105,19 +118,24 @@ def rightStickChangeHandler(valLR, valUD):
     global angle
     
     if mode == Mode.manual:
-
-        stickDeadZone = 0.05
         if valLR > -stickDeadZone and valLR < stickDeadZone:
-            valLR = 0
+            newLR = 0
         else:
+            if valLR > 0:
+                newLR = (valLR - stickDeadZone) / (1 - stickDeadZone)
+            else:
+                newLR = (valLR + stickDeadZone) / (1 - stickDeadZone)
+
             #Turn off motors if in spot turn mode and manual stick steering is activated
-            if rc.motorPowerL == -rc.motorPowerR:
+            if angle == 90:
+                print(f"Exiting spot mode. Stick LR: {valLR} treated as {newLR}")
                 rc.setLeftMotorPower(0)
                 rc.setRightMotorPower(0)
 
         #Only apply stick value if not in spot turn mode (to stop stick noise cancelling spot steering)
-        if rc.motorPowerL != -rc.motorPowerR:        
-            angle = valLR * 40
+        if angle != 90:        
+            angle = newLR * 40
+            print(f"Set steering on right stick. Stick LR: {valLR} treated as {newLR}")
             setSteering(angle)
 
 
@@ -663,10 +681,12 @@ def initDriving():
     updatePowerLimiting()
 
 
-def setSteering(angle):
+def setSteering(setAngle):
     """ Local method to update eyes before passing steering to robot control module """
-    global eyesPos
+    global eyesPos, angle
     
+    angle = setAngle
+
     rc.setSteering(angle)
     # print(angle)
     
@@ -729,7 +749,7 @@ def main():
                 #Default to not show debug info when on HyperPixel (on real robot)
                 debugInfo = 0
                 virtual = False
-                autoCycles = 50
+                autoCycles = 10
                 
             robotControl.screen = pygame.display.set_mode(screen_size,display_mode)
             screen = robotControl.screen
@@ -740,7 +760,7 @@ def main():
             # Initialise whether to display robot graphic
             rc.showRobotGraphic = (debugInfo > 0)
             #Initialise tof sensors
-            Sensors.initialise()
+            # Sensors.initialise()
 
             setMode(Mode.menu)
         else:
@@ -864,7 +884,7 @@ def main():
                    
                         
             #Update led RGB matrix displays with next frame of any queued animation
-            if frame > 2:
+            if frame > 0:
                 eyes.showNext()
                 frame = 0
             elif virtual:
@@ -877,7 +897,7 @@ def main():
             keepRunning = robotControl.controllerStatus() and not stopProgram
             
             #print("Events Completed: {}".format( time.perf_counter() ) )
-    
+            time.sleep(0.05)
     finally:
         #Clean up and turn off hardware (motors)
         rc.stopAll()
