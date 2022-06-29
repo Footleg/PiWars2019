@@ -10,52 +10,65 @@ class LEDMatrixDisplays:
     frameQueueR = []
     
     def __init__(self):
-        self.d1 = RGBMatrix5x5(0x74)
-        self.d2 = RGBMatrix5x5(0x77)
+        try:
+            self.d1 = RGBMatrix5x5(0x74)
+        except:
+            self.d1 = None
+
+        try:
+            self.d2 = RGBMatrix5x5(0x77)
+        except:
+            self.d2 = None
+            
         self.clear()
         
     def clear(self):
-        self.d1.clear()
-        self.d1.show()
-        self.d2.clear()
-        self.d2.show()
+        if self.d1 is not None:
+            self.d1.clear()
+            self.d1.show()
+        if self.d2 is not None:    
+            self.d2.clear()
+            self.d2.show()
         
     def reshow(self):
-        self.d1.show()
-        self.d2.show()
+        if self.d1 is not None:
+            self.d1.show()
+        if self.d2 is not None:    
+            self.d2.show()
         
     def showPattern(self,display,pattern,rotate=0):
         """ Display an array of rgb values on the display, with optional rotate of the pattern """
-        
-        if rotate==1:
-            #Rotate 90 deg
-            for y in range(0,5):
-                for x in range(0,5):
-                    i = 5*x+y
-                    display.set_pixel(x,y,pattern[i][0],pattern[i][1],pattern[i][2])
-            
-        elif rotate==2:
-            #Rotate 180 deg
-            for y in range(0,5):
-                for x in range(0,5):
-                    i = 24 - (5*y+4-x)
-                    display.set_pixel(x,y,pattern[i][0],pattern[i][1],pattern[i][2])
-            
-        elif rotate==3:
-            #Rotate 270 deg
-            for y in range(0,5):
-                for x in range(0,5):
-                    i = 24 - (5*x+y)
-                    display.set_pixel(x,y,pattern[i][0],pattern[i][1],pattern[i][2])
-            
-        else:
-            #No rotation
-            for y in range(0,5):
-                for x in range(0,5):
-                    i = 5*y+4-x
-                    display.set_pixel(x,y,pattern[i][0],pattern[i][1],pattern[i][2])
-        
-        display.show()
+        print(f"Showing on display {display}")
+        if display is not None:
+            if rotate==1:
+                #Rotate 90 deg
+                for y in range(0,5):
+                    for x in range(0,5):
+                        i = 5*x+y
+                        display.set_pixel(x,y,pattern[i][0],pattern[i][1],pattern[i][2])
+                
+            elif rotate==2:
+                #Rotate 180 deg
+                for y in range(0,5):
+                    for x in range(0,5):
+                        i = 24 - (5*y+4-x)
+                        display.set_pixel(x,y,pattern[i][0],pattern[i][1],pattern[i][2])
+                
+            elif rotate==3:
+                #Rotate 270 deg
+                for y in range(0,5):
+                    for x in range(0,5):
+                        i = 24 - (5*x+y)
+                        display.set_pixel(x,y,pattern[i][0],pattern[i][1],pattern[i][2])
+                
+            else:
+                #No rotation
+                for y in range(0,5):
+                    for x in range(0,5):
+                        i = 5*y+4-x
+                        display.set_pixel(x,y,pattern[i][0],pattern[i][1],pattern[i][2])
+            print("display show")
+            display.show()
 
 
     def addFrame(self,pattern,display=0):
@@ -75,14 +88,14 @@ class LEDMatrixDisplays:
             #Get next pattern from front of queue
             pattern = self.frameQueueL.pop(0)
             self.showPattern(self.d1,pattern,2)
-        else:
+        elif self.d1 is not None:
             self.d1.show()
             
         if len(self.frameQueueR) > 0:
             #Get next pattern from front of queue
             pattern = self.frameQueueR.pop(0)
             self.showPattern(self.d2,pattern)
-        else:
+        elif self.d2 is not None:
             self.d2.show()
     
     
@@ -101,6 +114,7 @@ class LEDMatrixDisplays:
         
     def blink(self):
         """ Queue up blink animation frames for both eyes """
+        print("blink queued")
         self.addFrame(eye_lid1)
         self.addFrame(eye_lid2)
         self.addFrame(eye_lid3)
